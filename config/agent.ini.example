@@ -1,0 +1,24 @@
+[api]
+url = http://localhost:8000/api
+token = your_token_here
+timeout = 30
+retry_attempts = 3
+
+[agent]
+id = 0
+name = IT-Agent
+report_interval = 300
+version = 1.0.0
+
+[logging]
+level = INFO
+file = logs/agent.log
+max_bytes = 10485760
+backup_count = 5
+
+[features]
+collect_hardware = true
+collect_domain = true
+collect_software = true
+collect_antivirus = true
+collect_office = true
