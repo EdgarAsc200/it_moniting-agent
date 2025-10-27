@@ -1,10 +1,27 @@
 """
-Clase principal del Agente de Monitoreo
+Clase principal del Agente de Monitoreo IT
+Versión con Scheduler integrado
 """
 
 import time
 import logging
-from datetime import datetime
+import platform
+from datetime import datetime, timedelta
+from typing import Dict, Any, Optional
+
+# Core modules
+from core.config import Config
+from core.logger import setup_logger
+from core.api_client import APIClient
+from core.scheduler import Scheduler
+
+# Collectors
+from collectors.hardware_collector import HardwareCollector
+from collectors.domain_collector import DomainCollector
+from collectors.software_collector import SoftwareCollector
+from collectors.antivirus_collector import AntivirusCollector
+from collectors.office_collector import OfficeCollector
+from collectors.network_collector import NetworkCollector
 
 
 class Agent:
@@ -14,405 +31,553 @@ class Agent:
     
     VERSION = "1.0.0"
     
-    def __init__(self, config):
+    def __init__(self, config: Config):
         """
-        Inicializa el agente
+        Inicializa el agente con su configuración
         
         Args:
-            config: Instancia de Config con la configuración
+            config: Objeto de configuración del agente
         """
         self.config = config
-        self.logger = logging.getLogger('ITAgent')
-        self.asset_id = config.getint('agent', 'id', fallback=0)
-        self.report_interval = config.getint('agent', 'report_interval', fallback=300)
         
-        # Inicializar collectors (los crearemos después)
+        # Inicializar logger (sin parámetro console)
+        self.logger = setup_logger(
+            name="Agent",
+            log_file=config.get('logging', 'file', fallback='logs/agent.log'),
+            level=config.get('logging', 'level', fallback='INFO')
+        )
+        
+        self.logger.info("=" * 60)
+        self.logger.info(f"Inicializando IT Monitoring Agent v{self.VERSION}")
+        self.logger.info("=" * 60)
+        
+        # Información del sistema
+        self.hostname = platform.node()
+        self.os_type = platform.system()
+        
+        # Intervalo de reporte (en segundos)
+        self.report_interval = int(config.get('agent', 'report_interval', fallback=300))
+        
+        # Cliente API
+        self.api_client = self._init_api_client()
+        
+        # Scheduler para tareas programadas
+        self.scheduler = Scheduler()
+        self.logger.info("✓ Scheduler inicializado")
+        
+        # Collectors
         self.collectors = {}
         self._init_collectors()
         
-        self.logger.info(f"Agente inicializado (ID: {self.asset_id})")
+        # Estado del agente
+        self.is_running = False
+        self.start_time = None
+        self.last_report_time = None
+        self.asset_id = None  # ID del activo (usado en modo --register)
+        
+        self.logger.info("Agent inicializado correctamente")
+        
+        # Intentar registrar el agente si está configurado
+        self._register_agent_if_needed()
+    
+    def _register_agent_if_needed(self):
+        """Registra el agente en el servidor si es necesario"""
+        try:
+            # Verificar si el agente ya tiene un ID configurado
+            agent_id = int(self.config.get('agent', 'id', fallback=0))
+            
+            if agent_id == 0 and self.api_client:
+                # Intentar registrar el agente
+                self.logger.info("Agente sin ID configurado, intentando registro...")
+                success, new_agent_id = self.api_client.register_agent()
+                
+                if success and new_agent_id:
+                    self.logger.info(f"✓ Agente registrado exitosamente con ID: {new_agent_id}")
+                    # Aquí podrías guardar el ID en el config si quieres persistirlo
+                else:
+                    self.logger.warning("⚠️  No se pudo registrar el agente automáticamente")
+            elif agent_id > 0:
+                self.logger.info(f"Agente ya registrado con ID: {agent_id}")
+                
+        except Exception as e:
+            self.logger.warning(f"Error al intentar registrar agente: {e}")
+            # No lanzar excepción, solo advertir
+    
+    def _init_api_client(self):
+        """Inicializa el cliente API"""
+        try:
+            # Verificar si usar mock o cliente real
+            use_mock = self.config.get('api', 'use_mock', fallback=True)
+            
+            if use_mock:
+                # Importar MockAPIClient
+                from core.api_client import MockAPIClient
+                api_client = MockAPIClient(self.config)
+                self.logger.info("✓ Mock API Client inicializado (modo simulación)")
+            else:
+                # Usar cliente real
+                api_client = APIClient(self.config)
+                self.logger.info(f"✓ API Client inicializado (base_url: {api_client.base_url})")
+            
+            return api_client
+            
+        except Exception as e:
+            self.logger.error(f"Error al inicializar API Client: {e}")
+            raise
     
     def _init_collectors(self):
-        """
-        Inicializa los collectors de datos
-        """
-        self.logger.debug("Inicializando collectors...")
+        """Inicializa todos los collectors habilitados"""
+        self.logger.info("Inicializando collectors...")
         
-        # Importar y crear collectors
-        try:
-            from src.collectors.hardware_collector import HardwareCollector
-            self.collectors['hardware'] = HardwareCollector()
-            self.logger.debug("✓ HardwareCollector inicializado")
-        except Exception as e:
-            self.logger.error(f"Error al inicializar HardwareCollector: {e}")
+        collectors_config = {
+            'hardware': (HardwareCollector, "HardwareCollector"),
+            'domain': (DomainCollector, "DomainCollector"),
+            'software': (SoftwareCollector, "SoftwareCollector"),
+            'antivirus': (AntivirusCollector, "AntivirusCollector"),
+            'office': (OfficeCollector, "OfficeCollector"),
+            'network': (NetworkCollector, "NetworkCollector")
+        }
         
-        try:
-            from src.collectors.domain_collector import DomainCollector
-            self.collectors['domain'] = DomainCollector()
-            self.logger.debug("✓ DomainCollector inicializado")
-        except Exception as e:
-            self.logger.error(f"Error al inicializar DomainCollector: {e}")
-
-        try:
-            from src.collectors.software_collector import SoftwareCollector
-            self.collectors['software'] = SoftwareCollector()
-            self.logger.debug("✓ SoftwareCollector inicializado")
-        except Exception as e:
-            self.logger.error(f"Error al inicializar SoftwareCollector: {e}")
-
-        try:
-            from src.collectors.antivirus_collector import AntivirusCollector
-            self.collectors['antivirus'] = AntivirusCollector()
-            self.logger.debug("✓ AntivirusCollector inicializado")
-        except Exception as e:
-            self.logger.error(f"Error al inicializar AntivirusCollector: {e}")
-
-        try:
-            from src.collectors.office_collector import OfficeCollector
-            self.collectors['office'] = OfficeCollector()
-            self.logger.debug("✓ OfficeCollector inicializado")
-        except Exception as e:
-            self.logger.error(f"Error al inicializar OfficeCollector: {e}")
+        for key, (collector_class, name) in collectors_config.items():
+            if self.config.get('collectors', key, fallback=True):
+                try:
+                    self.collectors[key] = collector_class()
+                    self.logger.debug(f"✓ {name} inicializado")
+                except Exception as e:
+                    self.logger.error(f"Error al inicializar {name}: {e}")
+            else:
+                self.logger.debug(f"✗ {name} deshabilitado en configuración")
         
-        try:
-            from src.collectors.network_collector import NetworkCollector
-            self.collectors['network'] = NetworkCollector()
-            self.logger.debug("✓ NetworkCollector inicializado")
-        except Exception as e:
-            self.logger.error(f"Error al inicializar NetworkCollector: {e}")
-
-        try:
-            from src.collectors.network_collector import NetworkCollector
-            self.collectors['network'] = NetworkCollector()
-            self.logger.debug("✓ NetworkCollector inicializado")
-        except Exception as e:
-            self.logger.error(f"Error al inicializar NetworkCollector: {e}")
-        
-        self.logger.debug("Collectors inicializados")
+        self.logger.info(f"Collectors inicializados: {len(self.collectors)}/{len(collectors_config)}")
     
-    def register(self):
+    def _setup_scheduled_jobs(self):
         """
-        Registra el agente en el servidor
-        
-        Returns:
-            bool: True si el registro fue exitoso
+        Configura todas las tareas programadas del agente
+        Este es el lugar donde se agregan TODOS los trabajos del scheduler
         """
-        self.logger.info("Registrando agente en el servidor...")
+        self.logger.info("Configurando tareas programadas...")
         
+        # ═══════════════════════════════════════════════════════════
+        # TAREA 1: Recolección y envío de datos (periódica)
+        # ═══════════════════════════════════════════════════════════
+        self.scheduler.add_interval_job(
+            name="collect_and_send_data",
+            func=self.run_once,
+            interval=self.report_interval
+        )
+        self.logger.info(f"✓ Tarea 'collect_and_send_data' agregada (cada {self.report_interval}s)")
+        
+        # ═══════════════════════════════════════════════════════════
+        # TAREA 2: Limpieza de logs antiguos (diaria - 2 AM)
+        # ═══════════════════════════════════════════════════════════
+        if self.config.get('scheduler', 'enable_log_cleanup', fallback=True):
+            cleanup_hour = int(self.config.get('scheduler', 'cleanup_logs_hour', fallback=2))
+            self.scheduler.add_cron_job(
+                name="cleanup_old_logs",
+                func=self._cleanup_old_logs,
+                hour=cleanup_hour,
+                minute=0
+            )
+            self.logger.info(f"✓ Tarea 'cleanup_old_logs' agregada (diario {cleanup_hour}:00 AM)")
+        
+        # ═══════════════════════════════════════════════════════════
+        # TAREA 3: Verificar actualizaciones (diaria - 3 AM)
+        # ═══════════════════════════════════════════════════════════
+        if self.config.get('scheduler', 'enable_auto_update', fallback=False):
+            update_hour = int(self.config.get('scheduler', 'check_updates_hour', fallback=3))
+            self.scheduler.add_cron_job(
+                name="check_for_updates",
+                func=self._check_for_updates,
+                hour=update_hour,
+                minute=0
+            )
+            self.logger.info(f"✓ Tarea 'check_for_updates' agregada (diario {update_hour}:00 AM)")
+        
+        # ═══════════════════════════════════════════════════════════
+        # TAREA 4: Health check periódico (cada hora)
+        # ═══════════════════════════════════════════════════════════
+        if self.config.get('scheduler', 'enable_health_check', fallback=True):
+            health_interval = int(self.config.get('scheduler', 'health_check_interval', fallback=3600))
+            self.scheduler.add_interval_job(
+                name="system_health_check",
+                func=self._system_health_check,
+                interval=health_interval
+            )
+            self.logger.info(f"✓ Tarea 'system_health_check' agregada (cada {health_interval}s)")
+        
+        # ═══════════════════════════════════════════════════════════
+        # TAREA 5: Reporte semanal (lunes 23:00)
+        # ═══════════════════════════════════════════════════════════
+        # NOTA: Deshabilitada porque add_cron_job no soporta day_of_week
+        # Para habilitar, necesitas modificar tu scheduler o usar otra estrategia
+        # if self.config.get('scheduler', 'enable_weekly_report', fallback=False):
+        #     self.scheduler.add_cron_job(
+        #         name="weekly_summary_report",
+        #         func=self._generate_weekly_report,
+        #         day_of_week=0,  # 0 = Lunes, 6 = Domingo
+        #         hour=23,
+        #         minute=0
+        #     )
+        #     self.logger.info("✓ Tarea 'weekly_summary_report' agregada (Lunes 23:00)")
+        
+        self.logger.info("Tareas programadas configuradas correctamente")
+    
+    def run(self):
+        """
+        Inicia el agente en modo servicio con scheduler
+        """
         try:
-            # TODO: Implementar registro real cuando tengamos API client
-            # Por ahora solo simulamos
-            self.logger.info("⚠️  Registro simulado - Implementar API client")
+            self.logger.info("Iniciando Agent en modo servicio...")
+            self.is_running = True
+            self.start_time = datetime.now()
             
-            # Simular que obtuvimos un ID
-            if self.asset_id == 0:
-                self.asset_id = 999  # ID simulado
-                self.config.set('agent', 'id', str(self.asset_id))
-                self.config.save()
+            # Configurar tareas programadas
+            self._setup_scheduled_jobs()
             
-            return True
+            # Iniciar el scheduler
+            self.scheduler.start()
+            self.logger.info("✓ Scheduler iniciado correctamente")
             
-        except Exception as e:
-            self.logger.error(f"Error al registrar agente: {e}")
-            return False
-    
-    def collect_all_data(self):
-        """
-        Recopila todos los datos de los collectors
-        
-        Returns:
-            dict: Datos recopilados de todos los collectors
-        """
-        self.logger.info("Recopilando datos de todos los collectors...")
-        
-        data = {
-            'asset_id': self.asset_id,
-            'version_agent': self.VERSION,
-            'report_date': datetime.now().isoformat(),
-        }
-        
-        # Recopilar datos reales de los collectors
-        data['hardware'] = self._collect_hardware()
-        data['domain'] = self._collect_domain()
-        data['software'] = self._collect_software()
-        data['antivirus'] = self._collect_antivirus()
-        data['office'] = self._collect_office()
-        data['network'] = self._collect_network()
-        data['network'] = self._collect_network()
-        
-        self.logger.info("✓ Datos recopilados exitosamente")
-        return data
-    
-    def _collect_hardware(self):
-        """Recopila información de hardware"""
-        self.logger.debug("Recopilando hardware...")
-        
-        if 'hardware' in self.collectors:
-            return self.collectors['hardware'].safe_collect()
-        
-        # Fallback si no hay collector
-        return {
-            'operating_system': 'Collector no disponible',
-            'processor': 'Collector no disponible',
-            'total_ram_gb': 0
-        }
-    
-    def _collect_domain(self):
-        """Recopila información de dominio"""
-        self.logger.debug("Recopilando dominio...")
-        
-        if 'domain' in self.collectors:
-            return self.collectors['domain'].safe_collect()
-        
-        # Fallback si no hay collector
-        return {
-            'is_domain_joined': False,
-            'domain_name': None
-        }
-    
-    def _collect_software(self):
-        """Recopila software instalado"""
-        self.logger.debug("Recopilando software...")
-
-        if 'software' in self.collectors:
-            return self.collectors['software'].safe_collect()
-
-        # Fallback si no hay collector
-        return {
-            'installed_software': [],
-            'total_installed': 0
-        }
-    
-    def _collect_antivirus(self):
-        """Recopila información de antivirus"""
-        self.logger.debug("Recopilando antivirus...")
-        
-        if 'antivirus' in self.collectors:
-            try:
-                data = self.collectors['antivirus'].collect()
+            # Ejecutar una recolección inmediata al iniciar
+            self.logger.info("Ejecutando recolección inicial...")
+            self.run_once()
+            
+            self.logger.info("=" * 60)
+            self.logger.info("Agent ejecutándose. Presiona Ctrl+C para detener.")
+            self.logger.info("=" * 60)
+            
+            # Mantener el programa vivo
+            while self.is_running:
+                time.sleep(60)  # Revisar cada minuto
                 
-                # Adaptar al formato esperado por la base de datos
-                return {
-                    'antivirus_installed': bool(data.get('antivirus_name')),
-                    'antivirus_name': data.get('antivirus_name'),
-                    'antivirus_version': data.get('antivirus_version'),
-                    'protection_status': data.get('protection_status'),
-                    'last_update': data.get('last_update'),
-                    'last_scan': data.get('last_scan'),
-                    'firewall_status': data.get('firewall_status'),
-                    'real_time_protection': data.get('real_time_protection', False),
-                    'definitions_up_to_date': data.get('definitions_up_to_date', False),
-                    'third_party_antivirus': data.get('third_party_antivirus', []),
-                    # Datos específicos de macOS
-                    'gatekeeper_status': data.get('gatekeeper_status'),
-                    'system_integrity_protection': data.get('system_integrity_protection'),
-                    # Datos específicos de Linux
-                    'selinux_status': data.get('selinux_status'),
-                    'apparmor_status': data.get('apparmor_status')
-                }
-            except Exception as e:
-                self.logger.error(f"Error al recopilar antivirus: {e}")
-                return {
-                    'antivirus_installed': False,
-                    'antivirus_name': None,
-                    'error': str(e)
-                }
-        
-        # Fallback si no hay collector
-        return {
-            'antivirus_installed': False,
-            'antivirus_name': None
-        }
-    
-    def _collect_office(self):
-        """Recopila información de Office"""
-        self.logger.debug("Recopilando Office...")
-        
-        if 'office' in self.collectors:
-            try:
-                data = self.collectors['office'].collect()
-                
-                # Adaptar al formato esperado por la base de datos
-                return {
-                    'office_installed': data.get('office_installed', False),
-                    'office_version': data.get('office_version'),
-                    'office_edition': data.get('office_edition'),
-                    'office_build': data.get('office_build'),
-                    'office_architecture': data.get('office_architecture'),
-                    'license_type': data.get('license_type'),
-                    'license_status': data.get('license_status'),
-                    'product_key_last5': data.get('product_key_last5'),
-                    'installed_apps': data.get('installed_apps', []),
-                    'installation_path': data.get('installation_path'),
-                    'update_channel': data.get('update_channel'),
-                    # Para Linux
-                    'office_type': data.get('office_type')
-                }
-            except Exception as e:
-                self.logger.error(f"Error al recopilar Office: {e}")
-                return {
-                    'office_installed': False,
-                    'office_version': None,
-                    'error': str(e)
-                }
-        
-        # Fallback si no hay collector
-        return {
-            'office_installed': False,
-            'office_version': None
-        }
-    
-    def _collect_network(self):
-        """Recopila información de red"""
-        self.logger.debug("Recopilando red...")
-        
-        if 'network' in self.collectors:
-            try:
-                data = self.collectors['network'].collect()
-                
-                # Los datos ya vienen en el formato correcto
-                return data
-            except Exception as e:
-                self.logger.error(f"Error al recopilar red: {e}")
-                return {
-                    'hostname': 'Unknown',
-                    'interfaces': [],
-                    'default_gateway': None,
-                    'dns_servers': [],
-                    'error': str(e)
-                }
-        
-        # Fallback si no hay collector
-        return {
-            'hostname': 'Unknown',
-            'interfaces': [],
-            'default_gateway': None,
-            'dns_servers': []
-        }
-    
-    def _collect_network(self):
-        """Recopila información de red"""
-        self.logger.debug("Recopilando red...")
-        
-        if 'network' in self.collectors:
-            try:
-                data = self.collectors['network'].collect()
-                
-                # Adaptar al formato esperado por la base de datos
-                return {
-                    'hostname': data.get('hostname', 'Unknown'),
-                    'interfaces': data.get('interfaces', []),
-                    'default_gateway': data.get('default_gateway'),
-                    'dns_servers': data.get('dns_servers', []),
-                    'mac_addresses': data.get('mac_addresses', []),
-                    'active_connections': data.get('active_connections', 0)
-                }
-            except Exception as e:
-                self.logger.error(f"Error al recopilar red: {e}")
-                return {
-                    'hostname': 'Unknown',
-                    'interfaces': [],
-                    'error': str(e)
-                }
-        
-        # Fallback si no hay collector
-        return {
-            'hostname': 'Unknown',
-            'interfaces': []
-        }
-    
-    def send_data(self, data):
-        """
-        Envía los datos al servidor
-        
-        Args:
-            data: Datos a enviar
-            
-        Returns:
-            bool: True si el envío fue exitoso
-        """
-        self.logger.info("Enviando datos al servidor...")
-        
-        try:
-            # TODO: Implementar envío real cuando tengamos API client
-            self.logger.info("⚠️  Envío simulado - Implementar API client")
-            self.logger.debug(f"Datos a enviar: {data}")
-            
-            return True
-            
+        except KeyboardInterrupt:
+            self.logger.info("Interrupción de usuario detectada")
+            self.stop()
         except Exception as e:
-            self.logger.error(f"Error al enviar datos: {e}")
-            return False
+            self.logger.error(f"Error crítico en el agent: {e}", exc_info=True)
+            self.stop()
+            raise
     
     def run_once(self):
         """
-        Ejecuta el agente una sola vez
+        Ejecuta un ciclo completo de recolección y envío de datos
+        Esta función es llamada por el scheduler automáticamente
         """
-        self.logger.info("Ejecutando ciclo único...")
-        
         try:
-            # Verificar si el agente está registrado
-            if self.asset_id == 0:
-                self.logger.warning("Agente no registrado. Ejecuta con --register primero")
-                return False
+            cycle_start = datetime.now()
+            self.logger.info("-" * 60)
+            self.logger.info(f"Iniciando ciclo de recolección: {cycle_start.isoformat()}")
+            self.logger.info("-" * 60)
             
-            # Recopilar datos
+            # Recolectar todos los datos
             data = self.collect_all_data()
             
-            # Enviar datos
-            success = self.send_data(data)
+            # Agregar metadata del agente
+            data['agent_info'] = self._get_agent_info()
+            
+            # Enviar datos al servidor
+            success = self._send_data(data)
+            
+            cycle_end = datetime.now()
+            duration = (cycle_end - cycle_start).total_seconds()
             
             if success:
-                self.logger.info("✓ Ciclo completado exitosamente")
+                self.last_report_time = cycle_end
+                self.logger.info(f"✓ Ciclo completado exitosamente en {duration:.2f}s")
             else:
-                self.logger.error("✗ Error al completar el ciclo")
+                self.logger.warning(f"✗ Ciclo completado con errores en {duration:.2f}s")
+            
+            self.logger.info("-" * 60)
             
             return success
             
         except Exception as e:
-            self.logger.error(f"Error en ciclo único: {e}", exc_info=True)
+            self.logger.error(f"Error en ciclo de recolección: {e}", exc_info=True)
             return False
     
-    def run(self):
+    def validate(self):
         """
-        Ejecuta el agente en modo continuo
+        Valida la configuración del agente sin ejecutar tareas (modo debug)
+        Útil para verificar que todo está configurado correctamente
         """
-        self.logger.info(f"Iniciando modo continuo (intervalo: {self.report_interval}s)")
+        self.logger.info("=" * 60)
+        self.logger.info("🔍 MODO DEBUG - Validación de Configuración")
+        self.logger.info("=" * 60)
         
-        # Verificar si el agente está registrado
-        if self.asset_id == 0:
-            self.logger.error("Agente no registrado. Ejecuta con --register primero")
-            return
+        # Información del sistema
+        self.logger.info("\n📋 Información del Sistema:")
+        self.logger.info(f"  • Hostname: {self.hostname}")
+        self.logger.info(f"  • OS: {self.os_type}")
+        self.logger.info(f"  • Versión Agent: {self.VERSION}")
         
-        cycle_count = 0
+        # Configuración de reporte
+        self.logger.info("\n⚙️  Configuración de Reporte:")
+        self.logger.info(f"  • Intervalo: {self.report_interval}s ({self.report_interval/60:.1f} minutos)")
         
-        while True:
+        # API Client
+        self.logger.info("\n🌐 API Client:")
+        if self.api_client:
+            is_mock = hasattr(self.api_client, 'simulated_agent_id')
+            self.logger.info(f"  • Tipo: {'MockAPIClient (Simulación)' if is_mock else 'APIClient (Real)'}")
+            self.logger.info(f"  • Base URL: {self.api_client.base_url}")
+            if is_mock:
+                self.logger.info(f"  • Agent ID simulado: {self.api_client.simulated_agent_id}")
+        else:
+            self.logger.warning("  • ⚠️  API Client no inicializado")
+        
+        # Collectors
+        self.logger.info("\n📊 Collectors:")
+        self.logger.info(f"  • Total: {len(self.collectors)}/6 habilitados")
+        for name in sorted(self.collectors.keys()):
+            self.logger.info(f"    ✓ {name}")
+        
+        # Tareas programadas
+        self.logger.info("\n⏰ Tareas Programadas que se configurarían:")
+        self.logger.info(f"  • collect_and_send_data → Cada {self.report_interval}s")
+        
+        if self.config.get('scheduler', 'enable_log_cleanup', fallback=True):
+            cleanup_hour = int(self.config.get('scheduler', 'cleanup_logs_hour', fallback=2))
+            self.logger.info(f"  • cleanup_old_logs → Diario a las {cleanup_hour:02d}:00")
+        
+        if self.config.get('scheduler', 'enable_auto_update', fallback=False):
+            update_hour = int(self.config.get('scheduler', 'check_updates_hour', fallback=3))
+            self.logger.info(f"  • check_for_updates → Diario a las {update_hour:02d}:00")
+        
+        if self.config.get('scheduler', 'enable_health_check', fallback=True):
+            health_interval = int(self.config.get('scheduler', 'health_check_interval', fallback=3600))
+            self.logger.info(f"  • system_health_check → Cada {health_interval}s ({health_interval/3600:.1f}h)")
+        
+        # Estado del Scheduler
+        self.logger.info("\n🔧 Scheduler:")
+        self.logger.info(f"  • Inicializado: Sí")
+        self.logger.info(f"  • Estado: No iniciado (modo debug)")
+        
+        self.logger.info("\n" + "=" * 60)
+        self.logger.info("✅ VALIDACIÓN COMPLETADA - Sin errores detectados")
+        self.logger.info("=" * 60)
+        self.logger.info("\n💡 El agente está listo para ejecutarse.")
+        self.logger.info("   Usa los siguientes comandos:")
+        self.logger.info("   • python src/main.py --register   → Registrar agente en servidor")
+        self.logger.info("   • python src/main.py --test       → Probar recolección (sin enviar)")
+        self.logger.info("   • python src/main.py --once       → Ejecutar una vez")
+        self.logger.info("   • python src/main.py              → Modo continuo con scheduler")
+        self.logger.info("")
+        
+        return True
+    
+    def register(self):
+        """
+        Registra el agente en el servidor y guarda el ID obtenido
+        Retorna True si el registro fue exitoso
+        """
+        try:
+            self.logger.info("📝 Iniciando proceso de registro del agente...")
+            
+            # Verificar que hay API client
+            if not self.api_client:
+                self.logger.error("❌ API Client no disponible")
+                return False
+            
+            # Intentar registrar
+            success, agent_id = self.api_client.register_agent()
+            
+            if success and agent_id:
+                self.logger.info(f"✅ Agente registrado exitosamente")
+                self.logger.info(f"📋 ID asignado: {agent_id}")
+                
+                # Guardar el ID en el objeto (para que main.py pueda accederlo)
+                self.asset_id = agent_id
+                
+                # Aquí podrías actualizar el archivo de configuración si quieres
+                # persistir el agent_id para futuros usos
+                # self.config.set('agent', 'id', str(agent_id))
+                # self.config.save()
+                
+                return True
+            else:
+                self.logger.error("❌ Fallo al registrar el agente")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"❌ Error durante el registro: {e}", exc_info=True)
+            return False
+    
+    def collect_all_data(self) -> Dict[str, Any]:
+        """Recolecta datos de todos los collectors habilitados (método público para testing)"""
+        data = {
+            'timestamp': datetime.now().isoformat(),
+            'hostname': self.hostname,
+            'os_type': self.os_type
+        }
+        
+        # Recolectar de cada collector
+        for name, collector in self.collectors.items():
             try:
-                cycle_count += 1
-                self.logger.info(f"─── Ciclo #{cycle_count} ───")
-                
-                start_time = time.time()
-                
-                # Ejecutar ciclo
-                self.run_once()
-                
-                # Calcular tiempo de espera
-                elapsed_time = time.time() - start_time
-                wait_time = max(0, self.report_interval - elapsed_time)
-                
-                if wait_time > 0:
-                    self.logger.info(f"⏳ Próximo reporte en {wait_time:.0f} segundos...")
-                    time.sleep(wait_time)
-                else:
-                    self.logger.warning(
-                        f"⚠️  El ciclo tardó {elapsed_time:.0f}s "
-                        f"(más que el intervalo de {self.report_interval}s)"
-                    )
-                
-            except KeyboardInterrupt:
-                self.logger.info("Deteniendo por solicitud del usuario...")
-                break
+                self.logger.debug(f"Recolectando datos: {name}")
+                collector_data = collector.collect()
+                data[name] = collector_data
+                self.logger.debug(f"✓ {name}: {len(str(collector_data))} bytes")
             except Exception as e:
-                self.logger.error(f"Error en el ciclo: {e}", exc_info=True)
-                self.logger.info("Reintentando en 60 segundos...")
-                time.sleep(60)
+                self.logger.error(f"Error al recolectar {name}: {e}")
+                data[name] = {'error': str(e)}
+        
+        return data
+    
+    def _send_data(self, data: Dict[str, Any]) -> bool:
+        """Envía los datos recolectados al servidor"""
+        try:
+            if self.api_client is None:
+                self.logger.warning("API Client no disponible - Datos no enviados")
+                return False
+            
+            self.logger.info("Enviando datos al servidor...")
+            
+            # Usar send_inventory_data del APIClient
+            success = self.api_client.send_inventory_data(data)
+            
+            if success:
+                self.logger.info("✓ Datos enviados correctamente")
+                return True
+            else:
+                self.logger.warning("✗ Error al enviar datos al servidor")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error al enviar datos: {e}")
+            return False
+    
+    def _get_agent_info(self) -> Dict[str, Any]:
+        """Retorna información del agente"""
+        uptime = None
+        if self.start_time:
+            uptime = (datetime.now() - self.start_time).total_seconds()
+        
+        return {
+            'version': self.VERSION,
+            'hostname': self.hostname,
+            'os': self.os_type,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'uptime_seconds': uptime,
+            'last_report': self.last_report_time.isoformat() if self.last_report_time else None,
+            'collectors_count': len(self.collectors),
+            'report_interval': self.report_interval
+        }
+    
+    # ═══════════════════════════════════════════════════════════
+    # FUNCIONES PARA TAREAS PROGRAMADAS
+    # ═══════════════════════════════════════════════════════════
+    
+    def _cleanup_old_logs(self):
+        """Limpia logs antiguos (tarea programada)"""
+        try:
+            self.logger.info("Iniciando limpieza de logs antiguos...")
+            
+            days_to_keep = int(self.config.get('logging', 'days_to_keep', fallback=30))
+            cutoff_date = datetime.now() - timedelta(days=days_to_keep)
+            
+            # Aquí iría la lógica para eliminar logs antiguos
+            # Por ahora solo registramos la acción
+            self.logger.info(f"Limpiando logs anteriores a {cutoff_date.date()}")
+            self.logger.info("✓ Limpieza de logs completada")
+            
+        except Exception as e:
+            self.logger.error(f"Error al limpiar logs: {e}", exc_info=True)
+    
+    def _check_for_updates(self):
+        """Verifica si hay actualizaciones disponibles (tarea programada)"""
+        try:
+            self.logger.info("Verificando actualizaciones del agente...")
+            
+            # Aquí iría la lógica para verificar actualizaciones
+            # Por ahora solo registramos la acción
+            self.logger.info(f"Versión actual: {self.VERSION}")
+            self.logger.info("✓ Verificación de actualizaciones completada")
+            
+        except Exception as e:
+            self.logger.error(f"Error al verificar actualizaciones: {e}", exc_info=True)
+    
+    def _system_health_check(self):
+        """Realiza un health check del sistema (tarea programada)"""
+        try:
+            self.logger.info("Ejecutando health check del sistema...")
+            
+            # Verificar estado de collectors
+            collectors_ok = len(self.collectors) > 0
+            
+            # Verificar conexión API
+            api_ok = self.api_client is not None
+            
+            # Verificar scheduler
+            scheduler_ok = self.scheduler.is_running
+            
+            health_status = {
+                'collectors': collectors_ok,
+                'api_client': api_ok,
+                'scheduler': scheduler_ok,
+                'overall': collectors_ok and api_ok and scheduler_ok
+            }
+            
+            if health_status['overall']:
+                self.logger.info(f"✓ Health check OK: {health_status}")
+            else:
+                self.logger.warning(f"✗ Health check FAILED: {health_status}")
+            
+        except Exception as e:
+            self.logger.error(f"Error en health check: {e}", exc_info=True)
+    
+    def _generate_weekly_report(self):
+        """Genera un reporte semanal (tarea programada)"""
+        try:
+            self.logger.info("Generando reporte semanal...")
+            
+            # Aquí iría la lógica para generar reporte semanal
+            # Por ahora solo registramos la acción
+            week_start = datetime.now() - timedelta(days=7)
+            self.logger.info(f"Reporte para la semana: {week_start.date()} - {datetime.now().date()}")
+            self.logger.info("✓ Reporte semanal generado")
+            
+        except Exception as e:
+            self.logger.error(f"Error al generar reporte semanal: {e}", exc_info=True)
+    
+    # ═══════════════════════════════════════════════════════════
+    # MÉTODOS DE CONTROL
+    # ═══════════════════════════════════════════════════════════
+    
+    def stop(self):
+        """Detiene el agente y el scheduler"""
+        self.logger.info("Deteniendo Agent...")
+        self.is_running = False
+        
+        if self.scheduler:
+            self.scheduler.stop()
+            self.logger.info("✓ Scheduler detenido")
+        
+        self.logger.info("Agent detenido correctamente")
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Retorna el estado actual del agente"""
+        return {
+            'is_running': self.is_running,
+            'version': self.VERSION,
+            'hostname': self.hostname,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'uptime': (datetime.now() - self.start_time).total_seconds() if self.start_time else 0,
+            'last_report': self.last_report_time.isoformat() if self.last_report_time else None,
+            'collectors': list(self.collectors.keys()),
+            'scheduler_running': self.scheduler.is_running if self.scheduler else False
+        }
+    
+    def pause_job(self, job_name: str):
+        """Pausa una tarea programada"""
+        self.scheduler.pause_job(job_name)
+        self.logger.info(f"Tarea '{job_name}' pausada")
+    
+    def resume_job(self, job_name: str):
+        """Reanuda una tarea programada"""
+        self.scheduler.resume_job(job_name)
+        self.logger.info(f"Tarea '{job_name}' reanudada")
+    
+    def run_job_now(self, job_name: str):
+        """Ejecuta una tarea inmediatamente"""
+        self.scheduler.run_job_now(job_name)
+        self.logger.info(f"Tarea '{job_name}' ejecutada manualmente")

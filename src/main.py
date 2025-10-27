@@ -74,6 +74,7 @@ Ejemplos de uso:
   %(prog)s --config custom.ini      Usar archivo de configuración personalizado
   %(prog)s --register               Registrar agente en el servidor
   %(prog)s --test                   Probar recolección de datos (sin enviar)
+  %(prog)s --debug                  Validar configuración (sin ejecutar)
   %(prog)s --version                Mostrar versión
         """
     )
@@ -105,7 +106,7 @@ Ejemplos de uso:
     parser.add_argument(
         '--debug',
         action='store_true',
-        help='Activar modo debug (logging detallado)'
+        help='Modo debug: solo validar configuración (no ejecuta tareas)'
     )
     
     parser.add_argument(
@@ -263,6 +264,7 @@ def main():
     
     try:
         # Setup logger
+        # En modo debug, usar nivel DEBUG para logging detallado
         log_level = 'DEBUG' if args.debug else 'INFO'
         logger = setup_logger(level=log_level)
         
@@ -291,11 +293,15 @@ def main():
         # Determinar modo de ejecución
         success = True
         
-        if args.register:
+        if args.debug:
+            # Modo debug (solo validar configuración, NO ejecutar tareas)
+            logger.info("🔍 Modo DEBUG activado - Solo validación")
+            success = agent.validate()
+        elif args.register:
             # Modo registro
             success = run_register_mode(agent)
         elif args.test:
-            # Modo prueba
+            # Modo prueba (recolectar sin enviar)
             success = run_test_mode(agent)
         elif args.once:
             # Modo ejecución única

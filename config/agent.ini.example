@@ -1,24 +1,113 @@
-[api]
-url = http://localhost:8000/api
-token = your_token_here
-timeout = 30
-retry_attempts = 3
+# IT Monitoring Agent - Archivo de Configuración
+# Copia este archivo como 'agent.ini' y ajusta los valores según tu entorno
 
 [agent]
+# ID único del agente (0 = no registrado, se asignará al registrar)
 id = 0
+
+# Nombre descriptivo del agente
 name = IT-Agent
-report_interval = 300
+
+# Versión del agente
 version = 1.0.0
 
+# Intervalo de reporte en segundos (mínimo 60)
+report_interval = 300
+
+# Intervalo de reintento en caso de error (segundos)
+retry_interval = 60
+
+# Número máximo de reintentos antes de fallar
+max_retries = 3
+
+
+[api]
+# URL base de la API del servidor
+# Ejemplos:
+#   - http://localhost:8000/api
+#   - https://inventory.empresa.com/api
+base_url = http://localhost:8000/api
+url = http://localhost:8000/api
+token = your_token_here
+
+# Timeout de conexión en segundos
+timeout = 30
+
+# Verificar certificados SSL (true/false)
+verify_ssl = true
+
+# API Key para autenticación (opcional, según tu API)
+# Deja vacío si no se requiere
+api_key = 
+
+# Usar API simulada (MockAPI) para pruebas sin servidor (true/false)
+# Útil para desarrollo y testing
+use_mock = false 
+
+
 [logging]
+# Nivel de logging: DEBUG, INFO, WARNING, ERROR, CRITICAL
 level = INFO
+
+# Ruta del archivo de log (relativa o absoluta)
 file = logs/agent.log
-max_bytes = 10485760
+
+# Tamaño máximo del archivo de log en bytes (10 MB por defecto)
+max_size = 10485760
+
+# Número de archivos de respaldo a mantener
 backup_count = 5
 
-[features]
-collect_hardware = true
-collect_domain = true
-collect_software = true
-collect_antivirus = true
-collect_office = true
+# Mostrar logs en consola (true/false)
+console = true
+
+
+[collectors]
+# Habilitar/deshabilitar collectors individuales (true/false)
+hardware = true
+domain = true
+software = true
+antivirus = true
+office = true
+network = true
+
+
+[security]
+# Encriptar datos antes de enviar (requiere configuración adicional)
+encrypt_data = false
+
+# Clave de encriptación (dejar vacío para generar automáticamente)
+encryption_key = 
+
+
+# ========================================
+# NOTAS ADICIONALES
+# ========================================
+#
+# 1. UBICACIONES DE CONFIGURACIÓN:
+#    El agente busca la configuración en este orden:
+#    - config/agent.ini (directorio del proyecto)
+#    - agent.ini (directorio actual)
+#    - ~/.it-agent/agent.ini (directorio home del usuario)
+#    - /etc/it-agent/agent.ini (solo Linux/macOS)
+#
+# 2. VARIABLES DE ENTORNO:
+#    Algunas configuraciones pueden sobrescribirse con variables de entorno:
+#    - IT_AGENT_API_URL
+#    - IT_AGENT_API_KEY
+#    - IT_AGENT_LOG_LEVEL
+#
+# 3. SEGURIDAD:
+#    - Protege este archivo de acceso no autorizado
+#    - No compartas api_key ni encryption_key públicamente
+#    - En producción, usa HTTPS (verify_ssl = true)
+#
+# 4. RENDIMIENTO:
+#    - report_interval muy bajo puede sobrecargar el servidor
+#    - Se recomienda un mínimo de 300 segundos (5 minutos)
+#    - Ajusta timeout según la velocidad de tu red
+#
+# 5. LOGS:
+#    - DEBUG genera muchos logs (solo para desarrollo)
+#    - INFO es apropiado para producción
+#    - Verifica regularmente el tamaño de los logs
