@@ -1,24 +1,42 @@
-# Core dependencies
-psutil==5.9.6
-requests==2.31.0
-pyyaml==6.0.1
+# IT Monitoring Agent - Python Dependencies
+# Python 3.8+
 
-# Configuration
-python-dotenv==1.0.0
-configparser==6.0.0
+# ═══════════════════════════════════════════════════════════
+# CORE DEPENDENCIES
+# ═══════════════════════════════════════════════════════════
 
-# Logging
-python-json-logger==2.0.7
+# Version comparison (para Updater)
+packaging>=21.0
 
-# Scheduling
-schedule==1.2.0
+# ═══════════════════════════════════════════════════════════
+# OPTIONAL DEPENDENCIES (comentadas por defecto)
+# ═══════════════════════════════════════════════════════════
 
-# Security
-cryptography==41.0.7
+# HTTP requests (si no usas urllib estándar)
+# requests>=2.28.0
 
-# Windows specific
-pywin32==306; sys_platform == 'win32'
-wmi==1.5.1; sys_platform == 'win32'
+# Para mejor parsing de configuraciones
+# configparser>=5.0  # Ya incluido en Python 3.8+
 
-# Linux specific
-distro==1.8.0; sys_platform == 'linux'
+# Para testing
+# pytest>=7.0.0
+# pytest-cov>=3.0.0
+
+# Para desarrollo
+# black>=22.0.0  # Code formatter
+# flake8>=4.0.0  # Linter
+# mypy>=0.950    # Type checker
+
+# ═══════════════════════════════════════════════════════════
+# PLATFORM-SPECIFIC DEPENDENCIES
+# ═══════════════════════════════════════════════════════════
+
+# Windows-specific
+# pywin32>=300; sys_platform == 'win32'
+# wmi>=1.5.1; sys_platform == 'win32'
+
+# Linux-specific
+# python-apt>=2.0.0; sys_platform == 'linux'
+
+# macOS-specific
+# pyobjc-framework-Cocoa>=8.0; sys_platform == 'darwin'

@@ -1,297 +1,367 @@
-"""
-Hardware Collector - Recopila información de hardware del sistema
-Multiplataforma: Windows, macOS, Linux
-"""
+# src/collectors/hardware_collector.py
 
 import platform
 import psutil
 import socket
 import subprocess
 import uuid
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
+from datetime import datetime
 
-from .base_collector import BaseCollector
+# Importar modelos
+from models import Hardware, HardwareType, HardwareStatus, HardwareComponent, Asset, AssetType, AssetStatus, AssetLocation
 
 
-class HardwareCollector(BaseCollector):
+class HardwareCollector:
     """
-    Recopila información de hardware del sistema
+    Recopila información de hardware del sistema.
+    Soporta Windows, macOS y Linux.
     """
     
     def __init__(self):
-        super().__init__()
-        self.system = platform.system()
+        self.os_type = platform.system()
     
     def collect(self) -> Dict[str, Any]:
         """
-        Recopila toda la información de hardware
-        
-        Returns:
-            dict: Información de hardware del sistema
+        Recopila información de hardware del sistema
         """
-        info = {
-            'operating_system': self.get_os_info(),
-            'os_version': self.get_os_version(),
-            'processor': self.get_cpu_info(),
-            'cpu_cores': psutil.cpu_count(logical=False) or psutil.cpu_count(),
+        return {
+            'report_date': datetime.now().isoformat(),
+            'hostname': socket.gethostname(),
+            'operating_system': platform.system(),
+            'os_version': platform.version(),
+            'architecture': platform.machine(),
+            'processor': platform.processor(),
+            'processor_cores': psutil.cpu_count(logical=False),
+            'processor_threads': psutil.cpu_count(logical=True),
+            'processor_speed': self._get_cpu_speed(),
             'total_ram_gb': round(psutil.virtual_memory().total / (1024**3), 2),
             'available_ram_gb': round(psutil.virtual_memory().available / (1024**3), 2),
-            'total_disk_gb': self.get_total_disk_space(),
-            'used_disk_gb': self.get_used_disk_space(),
-            'disk_type': self.get_disk_type(),
-            'video_card': self.get_gpu_info(),
-            'computer_name': socket.gethostname(),
-            'ip_address': self.get_ip_address(),
-            'mac_address': self.get_mac_address(),
-            'bios_version': self.get_bios_version(),
-            'uptime_hours': self.get_uptime_hours(),
-            'serial_number': self.get_serial_number()
+            'total_disk_gb': round(psutil.disk_usage('/').total / (1024**3), 2),
+            'available_disk_gb': round(psutil.disk_usage('/').free / (1024**3), 2),
+            'system_info': self._get_system_info(),
+            'disk_info': self._get_disk_info()
         }
+    
+    def _get_cpu_speed(self) -> Optional[float]:
+        """Obtiene la velocidad del CPU en GHz"""
+        try:
+            if self.os_type == "Darwin":  # macOS
+                result = subprocess.run(
+                    ["sysctl", "-n", "hw.cpufrequency"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    hz = int(result.stdout.strip())
+                    return round(hz / 1e9, 2)  # Convertir a GHz
+            elif self.os_type == "Linux":
+                with open('/proc/cpuinfo', 'r') as f:
+                    for line in f:
+                        if 'cpu MHz' in line:
+                            mhz = float(line.split(':')[1].strip())
+                            return round(mhz / 1000, 2)  # Convertir a GHz
+        except:
+            pass
+        return None
+    
+    def _get_system_info(self) -> Dict[str, str]:
+        """Obtiene información del sistema"""
+        info = {
+            'manufacturer': 'Unknown',
+            'model': 'Unknown',
+            'serial_number': None
+        }
+        
+        try:
+            if self.os_type == "Darwin":  # macOS
+                result = subprocess.run(
+                    ["system_profiler", "SPHardwareDataType"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                if result.returncode == 0:
+                    for line in result.stdout.split('\n'):
+                        if 'Model Name:' in line:
+                            info['manufacturer'] = 'Apple'
+                            info['model'] = line.split(':')[1].strip()
+                        elif 'Serial Number' in line:
+                            info['serial_number'] = line.split(':')[1].strip()
+            
+            elif self.os_type == "Windows":
+                # Manufacturer
+                result = subprocess.run(
+                    ["wmic", "computersystem", "get", "manufacturer"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                if result.returncode == 0:
+                    lines = result.stdout.strip().split('\n')
+                    if len(lines) > 1:
+                        info['manufacturer'] = lines[1].strip()
+                
+                # Model
+                result = subprocess.run(
+                    ["wmic", "computersystem", "get", "model"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                if result.returncode == 0:
+                    lines = result.stdout.strip().split('\n')
+                    if len(lines) > 1:
+                        info['model'] = lines[1].strip()
+                
+                # Serial
+                result = subprocess.run(
+                    ["wmic", "bios", "get", "serialnumber"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                if result.returncode == 0:
+                    lines = result.stdout.strip().split('\n')
+                    if len(lines) > 1:
+                        info['serial_number'] = lines[1].strip()
+            
+            elif self.os_type == "Linux":
+                try:
+                    with open('/sys/class/dmi/id/sys_vendor', 'r') as f:
+                        info['manufacturer'] = f.read().strip()
+                except:
+                    pass
+                
+                try:
+                    with open('/sys/class/dmi/id/product_name', 'r') as f:
+                        info['model'] = f.read().strip()
+                except:
+                    pass
+                
+                try:
+                    with open('/sys/class/dmi/id/product_serial', 'r') as f:
+                        info['serial_number'] = f.read().strip()
+                except:
+                    pass
+        
+        except Exception as e:
+            pass
         
         return info
     
-    def get_os_info(self) -> str:
-        """Obtiene información del sistema operativo"""
-        try:
-            system = platform.system()
-            
-            if system == "Windows":
-                return f"Windows {platform.release()}"
-            elif system == "Darwin":
-                return f"macOS {platform.mac_ver()[0]}"
-            elif system == "Linux":
-                try:
-                    import distro
-                    return f"{distro.name()} {distro.version()}"
-                except ImportError:
-                    return f"Linux {platform.release()}"
-            else:
-                return f"{system} {platform.release()}"
-        except Exception as e:
-            self.logger.warning(f"Error al obtener OS info: {e}")
-            return "Unknown"
-    
-    def get_os_version(self) -> str:
-        """Obtiene la versión detallada del SO"""
-        try:
-            return platform.version()
-        except Exception as e:
-            self.logger.warning(f"Error al obtener OS version: {e}")
-            return "Unknown"
-    
-    def get_cpu_info(self) -> str:
-        """Obtiene información del procesador"""
-        try:
-            if self.system == "Windows":
-                return platform.processor()
-            elif self.system == "Darwin":
-                cmd = "sysctl -n machdep.cpu.brand_string"
-                result = subprocess.check_output(cmd, shell=True, text=True)
-                return result.strip()
-            elif self.system == "Linux":
-                with open('/proc/cpuinfo', 'r') as f:
-                    for line in f:
-                        if 'model name' in line:
-                            return line.split(':')[1].strip()
-        except Exception as e:
-            self.logger.warning(f"Error al obtener CPU info: {e}")
-        
-        return platform.processor() or "Unknown"
-    
-    def get_total_disk_space(self) -> float:
-        """Obtiene el espacio total de disco en GB"""
-        total = 0
-        try:
-            for partition in psutil.disk_partitions():
-                try:
-                    usage = psutil.disk_usage(partition.mountpoint)
-                    total += usage.total
-                except (PermissionError, OSError):
-                    continue
-        except Exception as e:
-            self.logger.warning(f"Error al obtener espacio total de disco: {e}")
-        
-        return round(total / (1024**3), 2)
-    
-    def get_used_disk_space(self) -> float:
-        """Obtiene el espacio usado de disco en GB"""
-        used = 0
-        try:
-            for partition in psutil.disk_partitions():
-                try:
-                    usage = psutil.disk_usage(partition.mountpoint)
-                    used += usage.used
-                except (PermissionError, OSError):
-                    continue
-        except Exception as e:
-            self.logger.warning(f"Error al obtener espacio usado de disco: {e}")
-        
-        return round(used / (1024**3), 2)
-    
-    def get_disk_type(self) -> str:
-        """Intenta detectar el tipo de disco (SSD/HDD)"""
-        try:
-            if self.system == "Windows":
-                try:
-                    import wmi
-                    c = wmi.WMI()
-                    for disk in c.Win32_DiskDrive():
-                        media_type = str(disk.MediaType).upper()
-                        if 'SSD' in media_type or 'SOLID' in media_type:
-                            return 'SSD'
-                    return 'HDD'
-                except ImportError:
-                    self.logger.debug("WMI no disponible en Windows")
-                    return 'Unknown'
-                    
-            elif self.system == "Linux":
-                # Verificar si el disco principal es SSD
-                cmd = "lsblk -d -o name,rota | grep -w 0"
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-                if result.returncode == 0 and result.stdout:
-                    return 'SSD'
-                return 'HDD'
-                
-            elif self.system == "Darwin":
-                # En macOS, verificar tipo de disco
-                cmd = "diskutil info disk0 | grep 'Solid State'"
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-                if result.returncode == 0 and result.stdout:
-                    return 'SSD'
-                return 'Unknown'
-                
-        except Exception as e:
-            self.logger.warning(f"No se pudo detectar tipo de disco: {e}")
-        
-        return 'Unknown'
-    
-    def get_gpu_info(self) -> str:
-        """Obtiene información de la tarjeta gráfica"""
-        try:
-            if self.system == "Windows":
-                try:
-                    import wmi
-                    c = wmi.WMI()
-                    gpus = []
-                    for gpu in c.Win32_VideoController():
-                        gpus.append(gpu.Name)
-                    return ', '.join(gpus) if gpus else 'Unknown'
-                except ImportError:
-                    return 'Unknown (WMI no disponible)'
-                    
-            elif self.system == "Linux":
-                cmd = "lspci | grep -i vga | cut -d ':' -f 3"
-                result = subprocess.check_output(cmd, shell=True, text=True)
-                return result.strip() if result.strip() else 'Unknown'
-                
-            elif self.system == "Darwin":
-                cmd = "system_profiler SPDisplaysDataType | grep 'Chipset Model' | cut -d ':' -f 2"
-                result = subprocess.check_output(cmd, shell=True, text=True)
-                return result.strip() if result.strip() else 'Unknown'
-                
-        except Exception as e:
-            self.logger.warning(f"No se pudo obtener info de GPU: {e}")
-        
-        return 'Unknown'
-    
-    def get_ip_address(self) -> str:
-        """Obtiene la dirección IP principal"""
-        try:
-            # Conectar a un servidor externo para obtener la IP local usada
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            ip = s.getsockname()[0]
-            s.close()
-            return ip
-        except Exception:
+    def _get_disk_info(self) -> Dict[str, Any]:
+        """Obtiene información de discos"""
+        disks = []
+        for partition in psutil.disk_partitions():
             try:
-                return socket.gethostbyname(socket.gethostname())
-            except Exception as e:
-                self.logger.warning(f"Error al obtener IP: {e}")
-                return '127.0.0.1'
+                usage = psutil.disk_usage(partition.mountpoint)
+                disks.append({
+                    'device': partition.device,
+                    'mountpoint': partition.mountpoint,
+                    'fstype': partition.fstype,
+                    'total_gb': round(usage.total / (1024**3), 2),
+                    'used_gb': round(usage.used / (1024**3), 2),
+                    'free_gb': round(usage.free / (1024**3), 2),
+                    'percent': usage.percent
+                })
+            except:
+                continue
+        return {'partitions': disks}
     
-    def get_mac_address(self) -> str:
-        """Obtiene la dirección MAC principal"""
-        try:
-            mac = ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff)
-                           for elements in range(0, 2*6, 2)][::-1])
-            return mac
-        except Exception as e:
-            self.logger.warning(f"No se pudo obtener MAC address: {e}")
-            return 'Unknown'
+    # ═══════════════════════════════════════════════════════════
+    # MÉTODOS PARA MODELOS
+    # ═══════════════════════════════════════════════════════════
     
-    def get_bios_version(self) -> str:
-        """Obtiene la versión del BIOS/UEFI"""
-        try:
-            if self.system == "Windows":
-                try:
-                    import wmi
-                    c = wmi.WMI()
-                    for bios in c.Win32_BIOS():
-                        return f"{bios.Manufacturer} {bios.SMBIOSBIOSVersion}"
-                except ImportError:
-                    return 'Unknown (WMI no disponible)'
-                    
-            elif self.system == "Linux":
-                try:
-                    with open('/sys/class/dmi/id/bios_version', 'r') as f:
-                        version = f.read().strip()
-                    with open('/sys/class/dmi/id/bios_vendor', 'r') as f:
-                        vendor = f.read().strip()
-                    return f"{vendor} {version}"
-                except (FileNotFoundError, PermissionError):
-                    return 'Unknown'
-                    
-            elif self.system == "Darwin":
-                cmd = "system_profiler SPHardwareDataType | grep 'Boot ROM Version' | cut -d ':' -f 2"
-                result = subprocess.check_output(cmd, shell=True, text=True)
-                return result.strip() if result.strip() else 'Unknown'
-                
-        except Exception as e:
-            self.logger.warning(f"No se pudo obtener versión de BIOS: {e}")
+    def collect_as_model(self, asset_id: str = None) -> Hardware:
+        """
+        Recopila información de hardware y retorna modelo Hardware
         
-        return 'Unknown'
-    
-    def get_uptime_hours(self) -> int:
-        """Obtiene las horas desde el último reinicio"""
-        try:
-            import time as time_module
-            boot_time = psutil.boot_time()
-            uptime_seconds = time_module.time() - boot_time
-            uptime_hours = int(uptime_seconds / 3600)
-            return uptime_hours
-        except Exception as e:
-            self.logger.warning(f"No se pudo obtener uptime: {e}")
-            return 0
-    
-    def get_serial_number(self) -> str:
-        """Obtiene el número de serie del equipo"""
-        try:
-            if self.system == "Windows":
-                try:
-                    import wmi
-                    c = wmi.WMI()
-                    for item in c.Win32_BIOS():
-                        return item.SerialNumber
-                except ImportError:
-                    return 'Unknown (WMI no disponible)'
-                    
-            elif self.system == "Linux":
-                try:
-                    # Intentar con dmidecode (requiere sudo normalmente)
-                    cmd = "cat /sys/class/dmi/id/product_serial 2>/dev/null || cat /sys/class/dmi/id/board_serial 2>/dev/null"
-                    result = subprocess.check_output(cmd, shell=True, text=True)
-                    serial = result.strip()
-                    return serial if serial else 'Unknown'
-                except (subprocess.CalledProcessError, FileNotFoundError):
-                    return 'Unknown'
-                    
-            elif self.system == "Darwin":
-                cmd = "system_profiler SPHardwareDataType | grep 'Serial Number' | awk '{print $4}'"
-                result = subprocess.check_output(cmd, shell=True, text=True)
-                return result.strip() if result.strip() else 'Unknown'
-                
-        except Exception as e:
-            self.logger.warning(f"No se pudo obtener número de serie: {e}")
+        Args:
+            asset_id: ID del asset asociado (se genera si no se proporciona)
+            
+        Returns:
+            Hardware: Instancia del modelo Hardware validada
+        """
+        # Recolectar datos usando el método original
+        data = self.collect()
         
-        return 'Unknown'
+        # Generar IDs
+        hardware_id = str(uuid.uuid4())
+        if not asset_id:
+            asset_id = str(uuid.uuid4())
+        
+        # Determinar tipo de hardware
+        os_name = data.get('operating_system', 'Unknown')
+        hardware_type = self._determine_hardware_type(os_name)
+        
+        # Extraer información del sistema
+        system_info = data.get('system_info', {})
+        
+        # Crear componentes
+        components = self._create_components(data)
+        
+        # Crear modelo Hardware
+        hardware = Hardware(
+            id=hardware_id,
+            asset_id=asset_id,
+            type=hardware_type,
+            manufacturer=system_info.get('manufacturer', 'Unknown'),
+            model=system_info.get('model', 'Unknown'),
+            serial_number=system_info.get('serial_number'),
+            processor=data.get('processor'),
+            ram_gb=data.get('total_ram_gb'),
+            storage_gb=data.get('total_disk_gb'),
+            components=components,
+            status=HardwareStatus.OPERATIONAL,
+            specifications={
+                'operating_system': os_name,
+                'os_version': data.get('os_version'),
+                'architecture': data.get('architecture'),
+                'hostname': data.get('hostname'),
+                'processor_cores': data.get('processor_cores'),
+                'processor_speed': data.get('processor_speed'),
+                'system_info': system_info,
+                'disk_info': data.get('disk_info', {})
+            },
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        
+        # Validar antes de retornar
+        hardware.validate()
+        
+        return hardware
+    
+    def create_asset(
+        self, 
+        location: str = None, 
+        department: str = None, 
+        assigned_to: str = None
+    ) -> Asset:
+        """
+        Crea un Asset desde información del sistema
+        
+        Args:
+            location: Ubicación del asset
+            department: Departamento
+            assigned_to: Usuario asignado
+            
+        Returns:
+            Asset: Instancia del modelo Asset validada
+        """
+        # Recolectar datos
+        data = self.collect()
+        
+        # Generar ID y asset tag
+        asset_id = str(uuid.uuid4())
+        hostname = data.get('hostname', socket.gethostname())
+        asset_tag = f"IT-{hostname.upper()}"
+        
+        # Determinar tipo de asset
+        os_name = data.get('operating_system', '').lower()
+        if 'server' in os_name:
+            asset_type = AssetType.SERVER
+        else:
+            asset_type = AssetType.COMPUTER
+        
+        # Crear ubicación si se proporciona
+        location_obj = None
+        if location:
+            location_obj = AssetLocation(
+                building=location,
+                floor=None,
+                room=None,
+                notes=f"Department: {department}" if department else None
+            )
+        
+        # Extraer información del sistema
+        system_info = data.get('system_info', {})
+        
+        # Crear Asset
+        asset = Asset(
+            id=asset_id,
+            asset_tag=asset_tag,
+            name=hostname,
+            asset_type=asset_type,
+            status=AssetStatus.IN_USE,
+            manufacturer=system_info.get('manufacturer', 'Unknown'),
+            model=system_info.get('model', 'Unknown'),
+            serial_number=system_info.get('serial_number'),
+            location=location_obj,
+            department=department,
+            assigned_to=assigned_to,
+            description=f"{data.get('operating_system')} - {data.get('processor')}",
+            tags=[
+                data.get('operating_system', 'unknown_os'),
+                asset_type.value
+            ],
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        
+        # Validar
+        asset.validate()
+        
+        return asset
+    
+    def _determine_hardware_type(self, os_name: str) -> HardwareType:
+        """Determina el tipo de hardware basado en el OS"""
+        os_lower = os_name.lower()
+        
+        if 'server' in os_lower:
+            return HardwareType.SERVER
+        elif 'windows' in os_lower or 'macos' in os_lower or 'linux' in os_lower:
+            return HardwareType.DESKTOP
+        else:
+            return HardwareType.OTHER
+    
+    def _create_components(self, data: Dict[str, Any]) -> list:
+        """Crea lista de HardwareComponents desde los datos"""
+        components = []
+        
+        # Componente: Procesador
+        processor = data.get('processor')
+        if processor:
+            components.append(HardwareComponent(
+                type='CPU',
+                name=processor,
+                specification=f"{data.get('processor_cores', 'N/A')} cores",
+                manufacturer=self._extract_cpu_manufacturer(processor)
+            ))
+        
+        # Componente: RAM
+        ram_gb = data.get('total_ram_gb')
+        if ram_gb:
+            components.append(HardwareComponent(
+                type='RAM',
+                name=f'{ram_gb} GB RAM',
+                specification=f'{ram_gb} GB'
+            ))
+        
+        # Componente: Almacenamiento
+        storage_gb = data.get('total_disk_gb')
+        if storage_gb:
+            components.append(HardwareComponent(
+                type='Storage',
+                name=f'{storage_gb} GB Storage',
+                specification=f'{storage_gb} GB'
+            ))
+        
+        return components
+    
+    def _extract_cpu_manufacturer(self, processor_name: str) -> Optional[str]:
+        """Extrae el fabricante del nombre del procesador"""
+        processor_lower = processor_name.lower()
+        
+        if 'intel' in processor_lower:
+            return 'Intel'
+        elif 'amd' in processor_lower:
+            return 'AMD'
+        elif 'apple' in processor_lower or 'm1' in processor_lower or 'm2' in processor_lower or 'm3' in processor_lower or 'm4' in processor_lower:
+            return 'Apple'
+        elif 'arm' in processor_lower:
+            return 'ARM'
+        else:
+            return None

@@ -1,444 +1,507 @@
-"""
-Software Collector Module
-
-This module collects information about installed software on the system.
-Supports Windows, Linux, and macOS platforms.
-"""
+# src/collectors/software_collector.py
 
 import platform
 import subprocess
-import logging
-from typing import Dict, Any, List
+import re
+import uuid
 from datetime import datetime
-from .base_collector import BaseCollector
+from typing import List, Dict, Any, Optional
+
+# Importar modelos
+from models import Software, SoftwareType
 
 
-class SoftwareCollector(BaseCollector):
+class SoftwareCollector:
     """
-    Collector for installed software information.
-
-    Collects data about:
-    - Installed applications
-    - Application versions
-    - Publishers/Vendors
-    - Installation dates
-    - Install locations
+    Recopila información sobre el software instalado.
+    Soporta Windows, macOS y Linux.
     """
-
+    
     def __init__(self):
-        """Initialize the software collector."""
-        super().__init__()
-        self.system = platform.system()
-        self.logger.info(f"Initialized SoftwareCollector for {self.system}")
-
+        self.os_type = platform.system()
+    
     def collect(self) -> Dict[str, Any]:
         """
-        Collect installed software information.
-
-        Returns:
-            Dict containing installed software information
-        """
-        self.logger.info("Starting software collection")
-
-        info = {
-            'installed_software': [],
-            'total_installed': 0,
-            'collection_timestamp': datetime.now().isoformat(),
-            'platform': self.system
-        }
-
-        try:
-            if self.system == "Windows":
-                software_list = self.get_windows_software()
-            elif self.system == "Linux":
-                software_list = self.get_linux_software()
-            elif self.system == "Darwin":
-                software_list = self.get_macos_software()
-            else:
-                self.logger.warning(f"Unsupported platform: {self.system}")
-                software_list = []
-
-            info['installed_software'] = software_list
-            info['total_installed'] = len(software_list)
-
-            self.logger.info(f"Collected {info['total_installed']} software entries")
-
-        except Exception as e:
-            self.logger.error(f"Error collecting software information: {e}")
-            info['error'] = str(e)
-
-        return info
-
-    def get_windows_software(self) -> List[Dict[str, Any]]:
-        """
-        Get installed software on Windows.
-
-        Uses WMI and PowerShell to query installed programs from:
-        - Registry (Uninstall keys)
-        - Win32_Product (slower but more comprehensive)
-
-        Returns:
-            List of dictionaries containing software information
+        Recopila información de software instalado
         """
         software_list = []
-
+        
+        if self.os_type == "Windows":
+            software_list = self._collect_windows()
+        elif self.os_type == "Darwin":
+            software_list = self._collect_macos()
+        elif self.os_type == "Linux":
+            software_list = self._collect_linux()
+        
+        return {
+            'report_date': datetime.now().isoformat(),
+            'total_software': len(software_list),
+            'installed_software': software_list
+        }
+    
+    def _collect_windows(self) -> List[Dict[str, Any]]:
+        """Recopila software instalado en Windows"""
+        software_list = []
+        
         try:
-            # Method 1: Using PowerShell to query registry (faster)
-            self.logger.info("Querying Windows Registry for installed software")
-
-            # PowerShell command to get installed software from registry
-            ps_command = """
-            Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* |
-            Select-Object DisplayName, DisplayVersion, Publisher, InstallDate, InstallLocation, EstimatedSize |
-            Where-Object {$_.DisplayName -ne $null} |
-            ConvertTo-Json
+            # PowerShell script para obtener software del registro
+            ps_script = """
+            $software = @()
+            
+            $paths = @(
+                'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+                'HKLM:\\Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+                'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
+            )
+            
+            foreach ($path in $paths) {
+                Get-ItemProperty $path -ErrorAction SilentlyContinue | 
+                Where-Object { $_.DisplayName } | 
+                ForEach-Object {
+                    $software += [PSCustomObject]@{
+                        Name = $_.DisplayName
+                        Version = $_.DisplayVersion
+                        Publisher = $_.Publisher
+                        InstallDate = $_.InstallDate
+                        InstallLocation = $_.InstallLocation
+                        EstimatedSize = $_.EstimatedSize
+                    }
+                }
+            }
+            
+            $software | ConvertTo-Json -Depth 3
             """
-
+            
             result = subprocess.run(
-                ["powershell", "-Command", ps_command],
+                ["powershell", "-Command", ps_script],
                 capture_output=True,
                 text=True,
                 timeout=60
             )
-
-            if result.returncode == 0 and result.stdout:
+            
+            if result.returncode == 0 and result.stdout.strip():
                 import json
-                try:
-                    software_data = json.loads(result.stdout)
-
-                    # Handle single item (not a list)
-                    if isinstance(software_data, dict):
-                        software_data = [software_data]
-
-                    for item in software_data:
-                        if item.get('DisplayName'):
-                            software_list.append({
-                                'name': item.get('DisplayName', 'Unknown'),
-                                'version': item.get('DisplayVersion', 'Unknown'),
-                                'publisher': item.get('Publisher', 'Unknown'),
-                                'install_date': item.get('InstallDate', 'Unknown'),
-                                'install_location': item.get('InstallLocation', 'Unknown'),
-                                'size_kb': item.get('EstimatedSize', 0)
-                            })
-
-                except json.JSONDecodeError as e:
-                    self.logger.error(f"Error parsing PowerShell JSON output: {e}")
-
-            # Also check 32-bit registry on 64-bit systems
-            ps_command_32 = """
-            Get-ItemProperty HKLM:\\Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* |
-            Select-Object DisplayName, DisplayVersion, Publisher, InstallDate, InstallLocation, EstimatedSize |
-            Where-Object {$_.DisplayName -ne $null} |
-            ConvertTo-Json
-            """
-
-            result_32 = subprocess.run(
-                ["powershell", "-Command", ps_command_32],
-                capture_output=True,
-                text=True,
-                timeout=60
-            )
-
-            if result_32.returncode == 0 and result_32.stdout:
-                import json
-                try:
-                    software_data_32 = json.loads(result_32.stdout)
-
-                    if isinstance(software_data_32, dict):
-                        software_data_32 = [software_data_32]
-
-                    for item in software_data_32:
-                        if item.get('DisplayName'):
-                            # Avoid duplicates
-                            if not any(s['name'] == item.get('DisplayName') for s in software_list):
-                                software_list.append({
-                                    'name': item.get('DisplayName', 'Unknown'),
-                                    'version': item.get('DisplayVersion', 'Unknown'),
-                                    'publisher': item.get('Publisher', 'Unknown'),
-                                    'install_date': item.get('InstallDate', 'Unknown'),
-                                    'install_location': item.get('InstallLocation', 'Unknown'),
-                                    'size_kb': item.get('EstimatedSize', 0)
-                                })
-
-                except json.JSONDecodeError as e:
-                    self.logger.error(f"Error parsing 32-bit PowerShell JSON output: {e}")
-
-        except subprocess.TimeoutExpired:
-            self.logger.error("PowerShell command timed out")
+                software_data = json.loads(result.stdout)
+                
+                # Si es un solo elemento, convertirlo a lista
+                if isinstance(software_data, dict):
+                    software_data = [software_data]
+                
+                for sw in software_data:
+                    software_list.append({
+                        'software_name': sw.get('Name', ''),
+                        'version': sw.get('Version', ''),
+                        'vendor': sw.get('Publisher', ''),
+                        'install_date': sw.get('InstallDate', ''),
+                        'install_location': sw.get('InstallLocation', ''),
+                        'size_mb': sw.get('EstimatedSize', 0),
+                        'source': 'registry'
+                    })
+        
         except Exception as e:
-            self.logger.error(f"Error querying Windows software: {e}")
-
-            # Fallback: Try using wmic (legacy method)
-            try:
-                self.logger.info("Trying fallback method with WMIC")
+            print(f"Error collecting Windows software: {e}")
+        
+        return software_list
+    
+    def _collect_macos(self) -> List[Dict[str, Any]]:
+        """Recopila software instalado en macOS"""
+        software_list = []
+        
+        try:
+            # Aplicaciones del directorio /Applications
+            result = subprocess.run(
+                ["ls", "-1", "/Applications"],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode == 0:
+                apps = result.stdout.strip().split('\n')
+                for app in apps:
+                    if app.endswith('.app'):
+                        app_name = app.replace('.app', '')
+                        
+                        # Intentar obtener versión
+                        version = self._get_macos_app_version(f"/Applications/{app}")
+                        
+                        software_list.append({
+                            'software_name': app_name,
+                            'version': version or 'Unknown',
+                            'vendor': 'Unknown',
+                            'install_date': '',
+                            'install_location': f'/Applications/{app}',
+                            'size_mb': 0,
+                            'source': 'applications'
+                        })
+            
+            # Homebrew packages
+            if self._command_exists('brew'):
                 result = subprocess.run(
-                    ["wmic", "product", "get", "name,version,vendor"],
+                    ["brew", "list", "--versions"],
                     capture_output=True,
                     text=True,
-                    timeout=120
+                    timeout=30
                 )
-
+                
                 if result.returncode == 0:
-                    lines = result.stdout.strip().split('\n')[1:]  # Skip header
-                    for line in lines:
-                        if line.strip():
+                    for line in result.stdout.strip().split('\n'):
+                        if line:
                             parts = line.split()
                             if len(parts) >= 2:
                                 software_list.append({
-                                    'name': ' '.join(parts[:-2]) if len(parts) > 2 else parts[0],
-                                    'version': parts[-2] if len(parts) > 2 else 'Unknown',
-                                    'publisher': parts[-1] if len(parts) > 2 else 'Unknown',
-                                    'install_date': 'Unknown',
-                                    'install_location': 'Unknown',
-                                    'size_kb': 0
+                                    'software_name': parts[0],
+                                    'version': parts[1] if len(parts) > 1 else 'Unknown',
+                                    'vendor': 'Homebrew',
+                                    'install_date': '',
+                                    'install_location': '/usr/local/Cellar/' + parts[0],
+                                    'size_mb': 0,
+                                    'source': 'homebrew'
                                 })
-
-            except Exception as fallback_error:
-                self.logger.error(f"Fallback method also failed: {fallback_error}")
-
+        
+        except Exception as e:
+            print(f"Error collecting macOS software: {e}")
+        
         return software_list
-
-    def get_linux_software(self) -> List[Dict[str, Any]]:
-        """
-        Get installed software on Linux.
-
-        Tries multiple package managers:
-        - dpkg (Debian/Ubuntu)
-        - rpm (RedHat/CentOS/Fedora)
-        - pacman (Arch Linux)
-        - snap (Universal)
-        - flatpak (Universal)
-
-        Returns:
-            List of dictionaries containing software information
-        """
-        software_list = []
-
-        # Try dpkg (Debian/Ubuntu)
+    
+    def _get_macos_app_version(self, app_path: str) -> Optional[str]:
+        """Obtiene la versión de una aplicación macOS"""
         try:
-            self.logger.info("Trying dpkg package manager")
+            plist_path = f"{app_path}/Contents/Info.plist"
+            result = subprocess.run(
+                ["defaults", "read", plist_path, "CFBundleShortVersionString"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+        except:
+            pass
+        return None
+    
+    def _collect_linux(self) -> List[Dict[str, Any]]:
+        """Recopila software instalado en Linux"""
+        software_list = []
+        
+        try:
+            # Detectar gestor de paquetes
+            if self._command_exists('dpkg'):
+                software_list.extend(self._collect_dpkg())
+            elif self._command_exists('rpm'):
+                software_list.extend(self._collect_rpm())
+            elif self._command_exists('pacman'):
+                software_list.extend(self._collect_pacman())
+            
+            # Snap packages
+            if self._command_exists('snap'):
+                software_list.extend(self._collect_snap())
+            
+            # Flatpak packages
+            if self._command_exists('flatpak'):
+                software_list.extend(self._collect_flatpak())
+        
+        except Exception as e:
+            print(f"Error collecting Linux software: {e}")
+        
+        return software_list
+    
+    def _collect_dpkg(self) -> List[Dict[str, Any]]:
+        """Recopila paquetes dpkg (Debian/Ubuntu)"""
+        software_list = []
+        
+        try:
             result = subprocess.run(
                 ["dpkg", "-l"],
                 capture_output=True,
                 text=True,
                 timeout=30
             )
-
+            
             if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')
-                for line in lines:
-                    if line.startswith('ii'):  # Installed package
+                for line in result.stdout.split('\n')[5:]:  # Skip header
+                    if line.startswith('ii'):
                         parts = line.split()
                         if len(parts) >= 3:
                             software_list.append({
-                                'name': parts[1],
+                                'software_name': parts[1],
                                 'version': parts[2],
-                                'publisher': 'Unknown',
-                                'install_date': 'Unknown',
-                                'install_location': 'Unknown',
-                                'package_manager': 'dpkg'
+                                'vendor': 'dpkg',
+                                'install_date': '',
+                                'install_location': '',
+                                'size_mb': 0,
+                                'source': 'dpkg'
                             })
-
-        except FileNotFoundError:
-            self.logger.debug("dpkg not found, trying other package managers")
         except Exception as e:
-            self.logger.error(f"Error querying dpkg: {e}")
-
-        # Try rpm (RedHat/CentOS/Fedora)
-        if not software_list:
-            try:
-                self.logger.info("Trying rpm package manager")
-                result = subprocess.run(
-                    ["rpm", "-qa", "--queryformat", "%{NAME}|%{VERSION}|%{VENDOR}\n"],
-                    capture_output=True,
-                    text=True,
-                    timeout=30
-                )
-
-                if result.returncode == 0:
-                    lines = result.stdout.strip().split('\n')
-                    for line in lines:
-                        parts = line.split('|')
-                        if len(parts) >= 2:
-                            software_list.append({
-                                'name': parts[0],
-                                'version': parts[1],
-                                'publisher': parts[2] if len(parts) > 2 else 'Unknown',
-                                'install_date': 'Unknown',
-                                'install_location': 'Unknown',
-                                'package_manager': 'rpm'
-                            })
-
-            except FileNotFoundError:
-                self.logger.debug("rpm not found, trying other package managers")
-            except Exception as e:
-                self.logger.error(f"Error querying rpm: {e}")
-
-        # Try pacman (Arch Linux)
-        if not software_list:
-            try:
-                self.logger.info("Trying pacman package manager")
-                result = subprocess.run(
-                    ["pacman", "-Q"],
-                    capture_output=True,
-                    text=True,
-                    timeout=30
-                )
-
-                if result.returncode == 0:
-                    lines = result.stdout.strip().split('\n')
-                    for line in lines:
-                        parts = line.split()
-                        if len(parts) >= 2:
-                            software_list.append({
-                                'name': parts[0],
-                                'version': parts[1],
-                                'publisher': 'Unknown',
-                                'install_date': 'Unknown',
-                                'install_location': 'Unknown',
-                                'package_manager': 'pacman'
-                            })
-
-            except FileNotFoundError:
-                self.logger.debug("pacman not found")
-            except Exception as e:
-                self.logger.error(f"Error querying pacman: {e}")
-
-        # Try snap packages (universal)
-        try:
-            self.logger.info("Checking for snap packages")
-            result = subprocess.run(
-                ["snap", "list"],
-                capture_output=True,
-                text=True,
-                timeout=15
-            )
-
-            if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')[1:]  # Skip header
-                for line in lines:
-                    parts = line.split()
-                    if len(parts) >= 2:
-                        software_list.append({
-                            'name': parts[0],
-                            'version': parts[1],
-                            'publisher': parts[3] if len(parts) > 3 else 'Unknown',
-                            'install_date': 'Unknown',
-                            'install_location': 'Unknown',
-                            'package_manager': 'snap'
-                        })
-
-        except FileNotFoundError:
-            self.logger.debug("snap not found")
-        except Exception as e:
-            self.logger.error(f"Error querying snap: {e}")
-
-        # Try flatpak packages (universal)
-        try:
-            self.logger.info("Checking for flatpak packages")
-            result = subprocess.run(
-                ["flatpak", "list", "--app"],
-                capture_output=True,
-                text=True,
-                timeout=15
-            )
-
-            if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')
-                for line in lines:
-                    parts = line.split('\t')
-                    if len(parts) >= 2:
-                        software_list.append({
-                            'name': parts[0],
-                            'version': parts[2] if len(parts) > 2 else 'Unknown',
-                            'publisher': 'Unknown',
-                            'install_date': 'Unknown',
-                            'install_location': 'Unknown',
-                            'package_manager': 'flatpak'
-                        })
-
-        except FileNotFoundError:
-            self.logger.debug("flatpak not found")
-        except Exception as e:
-            self.logger.error(f"Error querying flatpak: {e}")
-
+            print(f"Error collecting dpkg packages: {e}")
+        
         return software_list
-
-    def get_macos_software(self) -> List[Dict[str, Any]]:
-        """
-        Get installed software on macOS.
-
-        Queries:
-        - Applications folder (/Applications)
-        - Homebrew packages
-        - Mac App Store apps
-
-        Returns:
-            List of dictionaries containing software information
-        """
+    
+    def _collect_rpm(self) -> List[Dict[str, Any]]:
+        """Recopila paquetes RPM (RedHat/CentOS/Fedora)"""
         software_list = []
-
-        # Method 1: Get applications from /Applications folder
+        
         try:
-            self.logger.info("Scanning /Applications folder")
             result = subprocess.run(
-                ["system_profiler", "SPApplicationsDataType", "-json"],
-                capture_output=True,
-                text=True,
-                timeout=60
-            )
-
-            if result.returncode == 0:
-                import json
-                try:
-                    data = json.loads(result.stdout)
-                    apps = data.get('SPApplicationsDataType', [])
-
-                    for app in apps:
-                        software_list.append({
-                            'name': app.get('_name', 'Unknown'),
-                            'version': app.get('version', 'Unknown'),
-                            'publisher': app.get('obtained_from', 'Unknown'),
-                            'install_date': app.get('lastModified', 'Unknown'),
-                            'install_location': app.get('path', 'Unknown'),
-                            'size_kb': 0
-                        })
-
-                except json.JSONDecodeError as e:
-                    self.logger.error(f"Error parsing system_profiler JSON: {e}")
-
-        except subprocess.TimeoutExpired:
-            self.logger.error("system_profiler command timed out")
-        except Exception as e:
-            self.logger.error(f"Error querying macOS applications: {e}")
-
-        # Method 2: Get Homebrew packages
-        try:
-            self.logger.info("Checking Homebrew packages")
-            result = subprocess.run(
-                ["brew", "list", "--versions"],
+                ["rpm", "-qa", "--queryformat", "%{NAME}|%{VERSION}|%{RELEASE}\n"],
                 capture_output=True,
                 text=True,
                 timeout=30
             )
-
+            
             if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')
-                for line in lines:
+                for line in result.stdout.strip().split('\n'):
+                    parts = line.split('|')
+                    if len(parts) >= 2:
+                        software_list.append({
+                            'software_name': parts[0],
+                            'version': f"{parts[1]}-{parts[2]}" if len(parts) > 2 else parts[1],
+                            'vendor': 'rpm',
+                            'install_date': '',
+                            'install_location': '',
+                            'size_mb': 0,
+                            'source': 'rpm'
+                        })
+        except Exception as e:
+            print(f"Error collecting RPM packages: {e}")
+        
+        return software_list
+    
+    def _collect_pacman(self) -> List[Dict[str, Any]]:
+        """Recopila paquetes Pacman (Arch Linux)"""
+        software_list = []
+        
+        try:
+            result = subprocess.run(
+                ["pacman", "-Q"],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode == 0:
+                for line in result.stdout.strip().split('\n'):
                     parts = line.split()
                     if len(parts) >= 2:
                         software_list.append({
-                            'name': parts[0],
+                            'software_name': parts[0],
                             'version': parts[1],
-                            'publisher': 'Homebrew',
-                            'install_date': 'Unknown',
-                            'install_location': 'Unknown',
-                            'package_manager': 'brew'
+                            'vendor': 'pacman',
+                            'install_date': '',
+                            'install_location': '',
+                            'size_mb': 0,
+                            'source': 'pacman'
                         })
-
-        except FileNotFoundError:
-            self.logger.debug("Homebrew not found")
         except Exception as e:
-            self.logger.error(f"Error querying Homebrew: {e}")
-
+            print(f"Error collecting Pacman packages: {e}")
+        
         return software_list
+    
+    def _collect_snap(self) -> List[Dict[str, Any]]:
+        """Recopila paquetes Snap"""
+        software_list = []
+        
+        try:
+            result = subprocess.run(
+                ["snap", "list"],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode == 0:
+                for line in result.stdout.strip().split('\n')[1:]:  # Skip header
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        software_list.append({
+                            'software_name': parts[0],
+                            'version': parts[1],
+                            'vendor': 'snap',
+                            'install_date': '',
+                            'install_location': f'/snap/{parts[0]}',
+                            'size_mb': 0,
+                            'source': 'snap'
+                        })
+        except Exception as e:
+            print(f"Error collecting Snap packages: {e}")
+        
+        return software_list
+    
+    def _collect_flatpak(self) -> List[Dict[str, Any]]:
+        """Recopila paquetes Flatpak"""
+        software_list = []
+        
+        try:
+            result = subprocess.run(
+                ["flatpak", "list", "--app", "--columns=name,version"],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode == 0:
+                for line in result.stdout.strip().split('\n'):
+                    parts = line.split('\t')
+                    if len(parts) >= 1:
+                        software_list.append({
+                            'software_name': parts[0],
+                            'version': parts[1] if len(parts) > 1 else 'Unknown',
+                            'vendor': 'flatpak',
+                            'install_date': '',
+                            'install_location': '',
+                            'size_mb': 0,
+                            'source': 'flatpak'
+                        })
+        except Exception as e:
+            print(f"Error collecting Flatpak packages: {e}")
+        
+        return software_list
+    
+    def _command_exists(self, command: str) -> bool:
+        """Verifica si un comando existe"""
+        try:
+            subprocess.run(
+                ["which" if self.os_type != "Windows" else "where", command],
+                capture_output=True,
+                timeout=5
+            )
+            return True
+        except:
+            return False
+    
+    # ═══════════════════════════════════════════════════════════
+    # MÉTODOS PARA MODELOS
+    # ═══════════════════════════════════════════════════════════
+    
+    def collect_as_models(self, asset_id: str) -> List[Software]:
+        """
+        Recopila información de software y retorna lista de modelos Software
+        
+        Args:
+            asset_id: ID del asset asociado
+            
+        Returns:
+            List[Software]: Lista de instancias del modelo Software validadas
+        """
+        # Recolectar datos usando el método original
+        data = self.collect()
+        
+        software_list = []
+        installed_software = data.get('installed_software', [])
+        
+        for sw_data in installed_software:
+            try:
+                software = self._create_software_model(sw_data, asset_id)
+                software_list.append(software)
+            except Exception as e:
+                # Log error pero continuar con el resto
+                print(f"⚠️  Error al mapear software {sw_data.get('software_name', 'Unknown')}: {e}")
+                continue
+        
+        return software_list
+    
+    def _create_software_model(self, sw_data: Dict[str, Any], asset_id: str) -> Software:
+        """Crea un modelo Software desde datos raw"""
+        # Generar ID único
+        software_id = str(uuid.uuid4())
+        
+        # Extraer datos básicos
+        name = sw_data.get('software_name') or sw_data.get('name', 'Unknown')
+        version = sw_data.get('version')
+        vendor = sw_data.get('vendor') or sw_data.get('publisher')
+        
+        # Detectar tipo de software
+        software_type = self._detect_software_type(name, vendor)
+        
+        # Parsear fecha de instalación
+        install_date_str = sw_data.get('install_date')
+        install_date = self._parse_install_date(install_date_str) if install_date_str else None
+        
+        # Extraer tamaño
+        install_size = sw_data.get('size_mb') or sw_data.get('estimated_size')
+        if install_size and isinstance(install_size, (int, float)):
+            if install_size < 100:
+                install_size_mb = None
+            else:
+                install_size_mb = int(install_size)
+        else:
+            install_size_mb = None
+        
+        # Crear modelo Software
+        software = Software(
+            id=software_id,
+            asset_id=asset_id,
+            name=name,
+            version=version,
+            vendor=vendor,
+            software_type=software_type,
+            install_date=install_date,
+            install_path=sw_data.get('install_location') or sw_data.get('install_path'),
+            install_size_mb=install_size_mb,
+            architecture=sw_data.get('architecture'),
+            is_active=True,
+            custom_fields={
+                'uninstall_string': sw_data.get('uninstall_string'),
+                'registry_key': sw_data.get('registry_key'),
+                'source': sw_data.get('source', 'system_registry')
+            },
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        
+        # Validar
+        software.validate()
+        
+        return software
+    
+    def _detect_software_type(self, software_name: str, vendor: str = None) -> SoftwareType:
+        """Detecta el tipo de software basándose en el nombre y vendor"""
+        name_lower = software_name.lower()
+        vendor_lower = (vendor or '').lower()
+        
+        # Seguridad
+        if any(keyword in name_lower for keyword in ['antivirus', 'security', 'defender', 'firewall', 'malware']):
+            return SoftwareType.SECURITY
+        
+        # Desarrollo
+        elif any(keyword in name_lower for keyword in ['visual studio', 'python', 'java', 'node', 'git', 'sdk', 'compiler']):
+            return SoftwareType.DEVELOPMENT
+        
+        # Productividad
+        elif any(keyword in name_lower for keyword in ['office', 'word', 'excel', 'powerpoint', 'outlook', 'adobe']):
+            return SoftwareType.PRODUCTIVITY
+        
+        # Sistema
+        elif any(keyword in name_lower for keyword in ['driver', 'runtime', 'redistributable', 'framework', '.net']):
+            return SoftwareType.SYSTEM
+        
+        # Utilidades
+        elif any(keyword in name_lower for keyword in ['utility', 'tool', 'cleaner', 'optimizer']):
+            return SoftwareType.UTILITY
+        
+        # Por defecto
+        else:
+            return SoftwareType.APPLICATION
+    
+    def _parse_install_date(self, date_str: str) -> Optional[datetime]:
+        """Parsea la fecha de instalación desde diferentes formatos"""
+        if not date_str:
+            return None
+        
+        # Formato: YYYYMMDD (común en Windows)
+        if len(date_str) == 8 and date_str.isdigit():
+            try:
+                year = int(date_str[0:4])
+                month = int(date_str[4:6])
+                day = int(date_str[6:8])
+                return datetime(year, month, day)
+            except:
+                return None
+        
+        # Formato ISO
+        try:
+            return datetime.fromisoformat(date_str)
+        except:
+            pass
+        
+        return None

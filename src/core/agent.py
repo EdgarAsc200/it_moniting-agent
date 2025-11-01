@@ -7,13 +7,14 @@ import time
 import logging
 import platform
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Tuple
 
 # Core modules
 from core.config import Config
 from core.logger import setup_logger
 from core.api_client import APIClient
 from core.scheduler import Scheduler
+from core.updater import Updater
 
 # Collectors
 from collectors.hardware_collector import HardwareCollector
@@ -22,6 +23,9 @@ from collectors.software_collector import SoftwareCollector
 from collectors.antivirus_collector import AntivirusCollector
 from collectors.office_collector import OfficeCollector
 from collectors.network_collector import NetworkCollector
+
+# Models (NUEVO)
+from models import Asset, Hardware, Software
 
 
 class Agent:
@@ -64,6 +68,10 @@ class Agent:
         # Scheduler para tareas programadas
         self.scheduler = Scheduler()
         self.logger.info("✓ Scheduler inicializado")
+        
+        # Updater para gestión de actualizaciones
+        self.updater = Updater(config=self.config, logger=self.logger, api_client=self.api_client)
+        self.logger.info("✓ Updater inicializado")
         
         # Collectors
         self.collectors = {}
@@ -204,21 +212,6 @@ class Agent:
                 interval=health_interval
             )
             self.logger.info(f"✓ Tarea 'system_health_check' agregada (cada {health_interval}s)")
-        
-        # ═══════════════════════════════════════════════════════════
-        # TAREA 5: Reporte semanal (lunes 23:00)
-        # ═══════════════════════════════════════════════════════════
-        # NOTA: Deshabilitada porque add_cron_job no soporta day_of_week
-        # Para habilitar, necesitas modificar tu scheduler o usar otra estrategia
-        # if self.config.get('scheduler', 'enable_weekly_report', fallback=False):
-        #     self.scheduler.add_cron_job(
-        #         name="weekly_summary_report",
-        #         func=self._generate_weekly_report,
-        #         day_of_week=0,  # 0 = Lunes, 6 = Domingo
-        #         hour=23,
-        #         minute=0
-        #     )
-        #     self.logger.info("✓ Tarea 'weekly_summary_report' agregada (Lunes 23:00)")
         
         self.logger.info("Tareas programadas configuradas correctamente")
     
@@ -423,6 +416,125 @@ class Agent:
         
         return data
     
+    # ═══════════════════════════════════════════════════════════
+    # NUEVOS MÉTODOS PARA SOPORTE DE MODELOS
+    # ═══════════════════════════════════════════════════════════
+    
+    def collect_as_models(
+        self, 
+        location: str = None, 
+        department: str = None, 
+        assigned_to: str = None
+    ) -> Tuple[Asset, Hardware, List[Software], Dict[str, Any]]:
+        """
+        Recolecta toda la información usando modelos de datos validados
+        
+        Args:
+            location: Ubicación del asset
+            department: Departamento
+            assigned_to: Usuario asignado
+            
+        Returns:
+            Tuple con (Asset, Hardware, List[Software], raw_data_dict)
+        """
+        try:
+            self.logger.info("🔍 Recolectando información con modelos validados...")
+            
+            # 1. Crear Asset
+            if 'hardware' not in self.collectors:
+                raise ValueError("HardwareCollector no está habilitado")
+            
+            asset = self.collectors['hardware'].create_asset(
+                location=location,
+                department=department,
+                assigned_to=assigned_to
+            )
+            self.logger.info(f"✅ Asset creado: {asset.asset_tag}")
+            
+            # Guardar asset_id
+            self.asset_id = asset.id
+            
+            # 2. Recolectar Hardware como modelo
+            hardware = self.collectors['hardware'].collect_as_model(asset_id=asset.id)
+            self.logger.info(f"✅ Hardware: {hardware.manufacturer} {hardware.model}")
+            self.logger.info(f"   └─ {len(hardware.components)} componentes")
+            
+            # 3. Recolectar Software como modelos
+            software_list = []
+            if 'software' in self.collectors:
+                software_list = self.collectors['software'].collect_as_models(asset_id=asset.id)
+                self.logger.info(f"✅ Software: {len(software_list)} programas")
+            
+            # 4. Recolectar datos adicionales (formato original dict)
+            raw_data = {}
+            for name in ['domain', 'antivirus', 'office', 'network']:
+                if name in self.collectors:
+                    try:
+                        raw_data[name] = self.collectors[name].collect()
+                        self.logger.debug(f"✓ {name} data collected")
+                    except Exception as e:
+                        self.logger.error(f"Error collecting {name}: {e}")
+                        raw_data[name] = {'error': str(e)}
+            
+            return asset, hardware, software_list, raw_data
+            
+        except Exception as e:
+            self.logger.error(f"Error en collect_as_models: {e}", exc_info=True)
+            raise
+    
+    def send_inventory_with_models(
+        self, 
+        location: str = None, 
+        department: str = None, 
+        assigned_to: str = None
+    ) -> bool:
+        """
+        Recolecta inventario usando modelos y lo envía al servidor
+        
+        Args:
+            location: Ubicación del asset
+            department: Departamento
+            assigned_to: Usuario asignado
+            
+        Returns:
+            bool: True si se envió exitosamente
+        """
+        try:
+            # Recolectar usando modelos
+            asset, hardware, software_list, raw_data = self.collect_as_models(
+                location=location,
+                department=department,
+                assigned_to=assigned_to
+            )
+            
+            # Convertir modelos a diccionarios
+            payload = {
+                'timestamp': datetime.now().isoformat(),
+                'agent_info': self._get_agent_info(),
+                'asset': asset.to_dict(),
+                'hardware': hardware.to_dict(),
+                'software': [sw.to_dict() for sw in software_list],
+                'additional_data': raw_data
+            }
+            
+            # Enviar al servidor
+            success = self._send_data(payload)
+            
+            if success:
+                self.logger.info("✅ Inventario con modelos enviado exitosamente")
+            else:
+                self.logger.error("❌ Error al enviar inventario con modelos")
+            
+            return success
+            
+        except Exception as e:
+            self.logger.error(f"Error enviando inventario con modelos: {e}", exc_info=True)
+            return False
+    
+    # ═══════════════════════════════════════════════════════════
+    # FIN NUEVOS MÉTODOS
+    # ═══════════════════════════════════════════════════════════
+    
     def _send_data(self, data: Dict[str, Any]) -> bool:
         """Envía los datos recolectados al servidor"""
         try:
@@ -488,10 +600,30 @@ class Agent:
         try:
             self.logger.info("Verificando actualizaciones del agente...")
             
-            # Aquí iría la lógica para verificar actualizaciones
-            # Por ahora solo registramos la acción
-            self.logger.info(f"Versión actual: {self.VERSION}")
-            self.logger.info("✓ Verificación de actualizaciones completada")
+            # Usar el Updater para verificar actualizaciones
+            has_update, latest_version = self.updater.check_for_updates()
+            
+            if has_update:
+                self.logger.info(f"✨ Nueva versión disponible: {latest_version}")
+                self.logger.info(f"   Versión actual: {self.VERSION}")
+                
+                # Verificar si auto-actualización está habilitada
+                auto_update_enabled = self.config.get('updater', 'auto_update', fallback=False)
+                
+                if auto_update_enabled:
+                    self.logger.info("🔄 Auto-actualización habilitada, iniciando proceso...")
+                    success = self.updater.auto_update()
+                    
+                    if success:
+                        self.logger.info("✅ Actualización aplicada correctamente")
+                        self.logger.warning("⚠️  Reinicia el agente para aplicar los cambios")
+                    else:
+                        self.logger.error("❌ Fallo al aplicar actualización automática")
+                else:
+                    self.logger.info("ℹ️  Auto-actualización deshabilitada")
+                    self.logger.info("   Ejecuta 'python src/main.py --update' para actualizar")
+            else:
+                self.logger.info(f"✓ Versión actual ({self.VERSION}) es la más reciente")
             
         except Exception as e:
             self.logger.error(f"Error al verificar actualizaciones: {e}", exc_info=True)
@@ -564,7 +696,7 @@ class Agent:
             'uptime': (datetime.now() - self.start_time).total_seconds() if self.start_time else 0,
             'last_report': self.last_report_time.isoformat() if self.last_report_time else None,
             'collectors': list(self.collectors.keys()),
-            'scheduler_running': self.scheduler.is_running if self.scheduler else False
+            'scheduler_running': hasattr(self.scheduler, 'is_running') and self.scheduler.is_running if self.scheduler else False
         }
     
     def pause_job(self, job_name: str):

@@ -1,63 +1,19 @@
-#!/usr/bin/env python3
 """
-IT Monitoring Agent - Main Entry Point
-Version: 1.0.0
-Description: Agente de monitoreo de activos de TI multiplataforma
+Punto de entrada principal del IT Monitoring Agent
 """
 
 import sys
 import os
 import argparse
-import signal
-import time
+import json
 from pathlib import Path
 
-# Agregar el directorio raíz al path para imports
-ROOT_DIR = Path(__file__).parent.parent
-sys.path.insert(0, str(ROOT_DIR))
+# Agregar el directorio src al path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Imports del agente (los crearemos después)
-try:
-    from src.core.logger import setup_logger
-    from src.core.config import Config
-    from src.core.agent import Agent
-except ImportError as e:
-    print(f"❌ Error al importar módulos: {e}")
-    print("⚠️  Asegúrate de tener la estructura correcta del proyecto")
-    sys.exit(1)
-
-# Versión del agente
-VERSION = "1.0.0"
-
-# Logger global
-logger = None
-
-
-def signal_handler(signum, frame):
-    """
-    Maneja las señales del sistema (Ctrl+C, etc.)
-    """
-    if logger:
-        logger.info("🛑 Señal de terminación recibida. Deteniendo agente...")
-    print("\n🛑 Deteniendo agente...")
-    sys.exit(0)
-
-
-def show_banner():
-    """
-    Muestra el banner de inicio del agente
-    """
-    banner = f"""
-╔══════════════════════════════════════════════════════════╗
-║                                                          ║
-║          🖥️  IT MONITORING AGENT v{VERSION}              ║
-║                                                          ║
-║          Agente de Monitoreo de Activos TI              ║
-║          Multiplataforma: Windows | Linux | macOS       ║
-║                                                          ║
-╚══════════════════════════════════════════════════════════╝
-    """
-    print(banner)
+from core.config import Config
+from core.agent import Agent
+from core.logger import setup_logger
 
 
 def parse_arguments():
@@ -65,266 +21,376 @@ def parse_arguments():
     Parsea los argumentos de línea de comandos
     """
     parser = argparse.ArgumentParser(
-        description='IT Monitoring Agent - Agente de monitoreo de activos TI',
+        description='IT Monitoring Agent - Sistema de monitoreo de activos IT',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Ejemplos de uso:
-  %(prog)s                          Ejecutar en modo continuo
-  %(prog)s --once                   Ejecutar una sola vez
-  %(prog)s --config custom.ini      Usar archivo de configuración personalizado
-  %(prog)s --register               Registrar agente en el servidor
-  %(prog)s --test                   Probar recolección de datos (sin enviar)
-  %(prog)s --debug                  Validar configuración (sin ejecutar)
-  %(prog)s --version                Mostrar versión
+  python src/main.py                    # Ejecutar en modo continuo
+  python src/main.py --debug            # Modo debug (validar configuración)
+  python src/main.py --validate         # Validar configuración
+  python src/main.py --register         # Registrar agente en servidor
+  python src/main.py --test             # Probar recolección (sin enviar)
+  python src/main.py --once             # Ejecutar una sola vez
+  python src/main.py --models           # Usar modelos validados
+  python src/main.py --export-models    # Exportar inventario a JSON
         """
     )
     
-    parser.add_argument(
-        '--config', '-c',
-        default='config/agent.ini',
-        help='Ruta al archivo de configuración (default: config/agent.ini)'
-    )
-    
-    parser.add_argument(
-        '--once',
+    # Modos de operación
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        '--debug',
         action='store_true',
-        help='Ejecutar una sola vez en lugar de modo continuo'
+        help='Modo debug - Validar configuración sin ejecutar'
     )
-    
-    parser.add_argument(
+    mode_group.add_argument(
+        '--validate',
+        action='store_true',
+        help='Validar configuración sin ejecutar (alias de --debug)'
+    )
+    mode_group.add_argument(
         '--register',
         action='store_true',
         help='Registrar el agente en el servidor'
     )
-    
-    parser.add_argument(
+    mode_group.add_argument(
         '--test',
         action='store_true',
-        help='Modo prueba: recopilar datos sin enviarlos al servidor'
+        help='Probar recolección de datos sin enviar al servidor'
     )
-    
-    parser.add_argument(
-        '--debug',
+    mode_group.add_argument(
+        '--once',
         action='store_true',
-        help='Modo debug: solo validar configuración (no ejecuta tareas)'
+        help='Ejecutar un solo ciclo de recolección y envío'
     )
-    
-    parser.add_argument(
-        '--version', '-v',
-        action='version',
-        version=f'IT Monitoring Agent v{VERSION}'
-    )
-    
-    parser.add_argument(
-        '--no-banner',
+    mode_group.add_argument(
+        '--models',
         action='store_true',
-        help='No mostrar el banner de inicio'
+        help='Recolectar y enviar usando modelos validados'
     )
+    mode_group.add_argument(
+        '--export-models',
+        action='store_true',
+        help='Exportar inventario con modelos a archivo JSON'
+    )
+    
+    # Opciones para modelos
+    parser.add_argument(
+        '--location',
+        type=str,
+        default=None,
+        help='Ubicación del asset (usado con --models o --export-models)'
+    )
+    parser.add_argument(
+        '--department',
+        type=str,
+        default=None,
+        help='Departamento (usado con --models o --export-models)'
+    )
+    parser.add_argument(
+        '--assigned-to',
+        type=str,
+        default=None,
+        help='Usuario asignado (usado con --models o --export-models)'
+    )
+    parser.add_argument(
+        '--output',
+        type=str,
+        default='inventory.json',
+        help='Archivo de salida para --export-models (default: inventory.json)'
+    )
+    
+    # Configuración
+    parser.add_argument(
+    '--config',
+    type=str,
+    default='config/agent.ini',  # ⬅️ Cambiado a agent.ini
+    help='Ruta al archivo de configuración'
+)
     
     return parser.parse_args()
 
 
-def check_requirements():
+def print_banner():
+    """Imprime el banner del agente"""
+    banner = """
+    ╔═══════════════════════════════════════════════════════════╗
+    ║                                                           ║
+    ║         IT MONITORING AGENT v1.0.0                        ║
+    ║         Sistema de Monitoreo de Activos IT                ║
+    ║                                                           ║
+    ╚═══════════════════════════════════════════════════════════╝
     """
-    Verifica que se cumplan los requisitos básicos
-    """
-    errors = []
-    
-    # Verificar versión de Python
-    if sys.version_info < (3, 8):
-        errors.append(f"Python 3.8+ requerido. Versión actual: {sys.version}")
-    
-    # Verificar que existe el directorio de logs
-    logs_dir = ROOT_DIR / "logs"
-    if not logs_dir.exists():
-        try:
-            logs_dir.mkdir(parents=True)
-        except Exception as e:
-            errors.append(f"No se pudo crear el directorio de logs: {e}")
-    
-    # Verificar que existe el directorio de configuración
-    config_dir = ROOT_DIR / "config"
-    if not config_dir.exists():
-        errors.append("No existe el directorio 'config'. Por favor créalo.")
-    
-    if errors:
-        print("❌ Errores de requisitos:\n")
-        for error in errors:
-            print(f"  • {error}")
-        return False
-    
-    return True
+    print(banner)
 
 
-def run_once_mode(agent):
+def mode_debug(agent: Agent):
     """
-    Ejecuta el agente una sola vez
+    Modo: Debug/Validar configuración
     """
-    logger.info("🔄 Modo ejecución única activado")
+    print("\n🔍 MODO DEBUG - Validación de Configuración\n")
+    agent.validate()
+
+
+def mode_register(agent: Agent):
+    """
+    Modo: Registrar agente
+    """
+    print("\n📝 MODO: REGISTRO DE AGENTE\n")
+    success = agent.register()
+    
+    if success:
+        print("\n✅ REGISTRO EXITOSO")
+        print(f"   Agent ID: {agent.asset_id}")
+        print("\n💡 El agente está listo para comenzar a reportar datos.")
+    else:
+        print("\n❌ REGISTRO FALLIDO")
+        print("   Verifica la configuración del servidor y vuelve a intentar.")
+        sys.exit(1)
+
+
+def mode_test(agent: Agent):
+    """
+    Modo: Probar recolección sin enviar
+    """
+    print("\n🧪 MODO: PRUEBA DE RECOLECCIÓN (sin enviar datos)\n")
+    
+    print("Recolectando datos del sistema...")
+    data = agent.collect_all_data()
+    
+    print("\n" + "="*70)
+    print("📊 DATOS RECOLECTADOS")
+    print("="*70)
+    
+    # Mostrar resumen
+    print(f"\n📅 Timestamp: {data.get('timestamp')}")
+    print(f"🖥️  Hostname: {data.get('hostname')}")
+    print(f"💻 OS: {data.get('os_type')}")
+    
+    print("\n📦 Módulos recolectados:")
+    for key in data.keys():
+        if key not in ['timestamp', 'hostname', 'os_type']:
+            if isinstance(data[key], dict) and 'error' not in data[key]:
+                print(f"   ✓ {key}")
+            elif isinstance(data[key], dict) and 'error' in data[key]:
+                print(f"   ✗ {key} (error: {data[key]['error']})")
+            else:
+                print(f"   ✓ {key}")
+    
+    # Guardar en archivo temporal
+    test_file = 'test_collection.json'
+    with open(test_file, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    
+    print(f"\n💾 Datos guardados en: {test_file}")
+    print("\n✅ PRUEBA COMPLETADA")
+
+
+def mode_once(agent: Agent):
+    """
+    Modo: Ejecutar una sola vez
+    """
+    print("\n🔄 MODO: EJECUCIÓN ÚNICA\n")
+    
+    print("Ejecutando ciclo de recolección y envío...")
+    success = agent.run_once()
+    
+    if success:
+        print("\n✅ CICLO COMPLETADO EXITOSAMENTE")
+    else:
+        print("\n⚠️  CICLO COMPLETADO CON ERRORES")
+        sys.exit(1)
+
+
+def mode_models(agent: Agent, location: str, department: str, assigned_to: str):
+    """
+    Modo: Usar modelos validados
+    """
+    print("\n📦 MODO: RECOLECCIÓN CON MODELOS VALIDADOS\n")
+    
+    print("Recolectando inventario con modelos...")
+    print(f"  • Ubicación: {location or 'No especificada'}")
+    print(f"  • Departamento: {department or 'No especificado'}")
+    print(f"  • Asignado a: {assigned_to or 'No asignado'}")
+    print()
+    
+    success = agent.send_inventory_with_models(
+        location=location,
+        department=department,
+        assigned_to=assigned_to
+    )
+    
+    if success:
+        print("\n✅ INVENTARIO ENVIADO EXITOSAMENTE CON MODELOS VALIDADOS")
+        if agent.asset_id:
+            print(f"   Asset ID: {agent.asset_id}")
+    else:
+        print("\n❌ ERROR AL ENVIAR INVENTARIO")
+        sys.exit(1)
+
+
+def mode_export_models(agent: Agent, location: str, department: str, assigned_to: str, output_file: str):
+    """
+    Modo: Exportar modelos a JSON
+    """
+    print("\n💾 MODO: EXPORTAR INVENTARIO CON MODELOS\n")
+    
+    print("Recolectando inventario con modelos...")
+    print(f"  • Ubicación: {location or 'No especificada'}")
+    print(f"  • Departamento: {department or 'No especificado'}")
+    print(f"  • Asignado a: {assigned_to or 'No asignado'}")
+    print()
     
     try:
-        agent.run_once()
-        logger.info("✅ Ejecución única completada exitosamente")
-        return True
+        # Recolectar usando modelos
+        asset, hardware, software_list, raw_data = agent.collect_as_models(
+            location=location,
+            department=department,
+            assigned_to=assigned_to
+        )
+        
+        print("="*70)
+        print("📊 RESUMEN DEL INVENTARIO")
+        print("="*70)
+        
+        # Mostrar resumen
+        print(f"\n📋 Asset:")
+        print(f"   • Tag: {asset.asset_tag}")
+        print(f"   • Nombre: {asset.name}")
+        print(f"   • Tipo: {asset.asset_type.value}")
+        print(f"   • Estado: {asset.status.value}")
+        if asset.location:
+            print(f"   • Ubicación: {asset.location.building}")
+        
+        print(f"\n💻 Hardware:")
+        print(f"   • Fabricante: {hardware.manufacturer}")
+        print(f"   • Modelo: {hardware.model}")
+        print(f"   • Tipo: {hardware.type.value}")
+        print(f"   • Procesador: {hardware.processor}")
+        print(f"   • RAM: {hardware.ram_gb} GB")
+        print(f"   • Almacenamiento: {hardware.storage_gb} GB")
+        print(f"   • Componentes: {len(hardware.components)}")
+        
+        print(f"\n📦 Software:")
+        print(f"   • Total programas: {len(software_list)}")
+        
+        # Contar por tipo
+        software_by_type = {}
+        for sw in software_list:
+            sw_type = sw.software_type.value
+            software_by_type[sw_type] = software_by_type.get(sw_type, 0) + 1
+        
+        print(f"   • Por tipo:")
+        for sw_type, count in sorted(software_by_type.items(), key=lambda x: x[1], reverse=True):
+            print(f"     - {sw_type}: {count}")
+        
+        # Top 10 programas
+        if software_list:
+            print(f"\n   • Top 10 programas:")
+            for i, sw in enumerate(software_list[:10], 1):
+                version = f"v{sw.version}" if sw.version else "sin versión"
+                print(f"     {i:2d}. {sw.name} ({version})")
+        
+        print(f"\n🔧 Datos adicionales:")
+        for key in raw_data.keys():
+            print(f"   • {key}: ✓")
+        
+        # Convertir a diccionarios
+        inventory_data = {
+            'metadata': {
+                'export_date': agent.collect_all_data()['timestamp'],
+                'agent_version': agent.VERSION,
+                'hostname': agent.hostname
+            },
+            'asset': asset.to_dict(),
+            'hardware': hardware.to_dict(),
+            'software': [sw.to_dict() for sw in software_list],
+            'additional_data': raw_data
+        }
+        
+        # Guardar en archivo
+        output_path = Path(output_file)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(inventory_data, f, indent=2, ensure_ascii=False)
+        
+        print("\n" + "="*70)
+        print(f"✅ INVENTARIO EXPORTADO EXITOSAMENTE")
+        print(f"   Archivo: {output_path.absolute()}")
+        print(f"   Tamaño: {output_path.stat().st_size / 1024:.2f} KB")
+        print("="*70)
+        
     except Exception as e:
-        logger.error(f"❌ Error en ejecución única: {e}", exc_info=True)
-        return False
+        print(f"\n❌ ERROR AL EXPORTAR INVENTARIO: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 
-def run_continuous_mode(agent):
+def mode_service(agent: Agent):
     """
-    Ejecuta el agente en modo continuo
+    Modo: Servicio continuo (default)
     """
-    logger.info("🔄 Modo continuo activado")
-    logger.info(f"📊 Reportando cada {agent.config.get('agent', 'report_interval')} segundos")
-    
-    try:
-        agent.run()
-    except KeyboardInterrupt:
-        logger.info("🛑 Agente detenido por el usuario")
-    except Exception as e:
-        logger.error(f"❌ Error en modo continuo: {e}", exc_info=True)
-        return False
-    
-    return True
-
-
-def run_test_mode(agent):
-    """
-    Ejecuta el agente en modo prueba (sin enviar datos)
-    """
-    logger.info("🧪 Modo prueba activado - NO se enviarán datos al servidor")
-    
-    try:
-        data = agent.collect_all_data()
-        
-        print("\n" + "="*60)
-        print("📊 DATOS RECOPILADOS (Modo Prueba)")
-        print("="*60 + "\n")
-        
-        import json
-        print(json.dumps(data, indent=2, ensure_ascii=False))
-        
-        print("\n" + "="*60)
-        print("✅ Recopilación exitosa - Datos NO enviados (modo prueba)")
-        print("="*60 + "\n")
-        
-        return True
-    except Exception as e:
-        logger.error(f"❌ Error en modo prueba: {e}", exc_info=True)
-        return False
-
-
-def run_register_mode(agent):
-    """
-    Registra el agente en el servidor
-    """
-    logger.info("📝 Registrando agente en el servidor...")
-    
-    try:
-        result = agent.register()
-        
-        if result:
-            logger.info("✅ Agente registrado exitosamente")
-            logger.info(f"📋 ID del activo: {agent.asset_id}")
-            print(f"\n✅ Agente registrado exitosamente")
-            print(f"📋 ID del activo: {agent.asset_id}")
-            print(f"💾 Configuración actualizada en: {agent.config.config_file}")
-            return True
-        else:
-            logger.error("❌ No se pudo registrar el agente")
-            print("\n❌ No se pudo registrar el agente. Revisa los logs para más detalles.")
-            return False
-            
-    except Exception as e:
-        logger.error(f"❌ Error al registrar agente: {e}", exc_info=True)
-        return False
+    print("\n⚙️  MODO: SERVICIO CONTINUO\n")
+    agent.run()
 
 
 def main():
     """
     Función principal
     """
-    global logger
-    
-    # Parsear argumentos
-    args = parse_arguments()
-    
-    # Mostrar banner
-    if not args.no_banner:
-        show_banner()
-    
-    # Verificar requisitos
-    if not check_requirements():
-        sys.exit(1)
-    
-    # Configurar manejador de señales
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    
     try:
-        # Setup logger
-        # En modo debug, usar nivel DEBUG para logging detallado
-        log_level = 'DEBUG' if args.debug else 'INFO'
-        logger = setup_logger(level=log_level)
+        # Parsear argumentos
+        args = parse_arguments()
         
-        logger.info("="*60)
-        logger.info(f"🚀 Iniciando IT Monitoring Agent v{VERSION}")
-        logger.info(f"🖥️  Sistema operativo: {sys.platform}")
-        logger.info(f"🐍 Python: {sys.version.split()[0]}")
-        logger.info("="*60)
+        # Imprimir banner
+        print_banner()
         
         # Cargar configuración
-        logger.info(f"📂 Cargando configuración desde: {args.config}")
+        print(f"📂 Cargando configuración desde: {args.config}")
         config = Config(args.config)
+        print("✓ Configuración cargada\n")
         
-        if not config.validate():
-            logger.error("❌ Configuración inválida. Revisa el archivo de configuración.")
-            print("❌ Configuración inválida. Revisa el archivo de configuración.")
-            sys.exit(1)
-        
-        logger.info("✅ Configuración cargada correctamente")
-        
-        # Crear instancia del agente
-        logger.info("🔧 Inicializando agente...")
+        # Crear agente
+        print("🚀 Inicializando agente...")
         agent = Agent(config)
-        logger.info("✅ Agente inicializado correctamente")
+        print("✓ Agente inicializado\n")
         
-        # Determinar modo de ejecución
-        success = True
+        # Ejecutar según el modo
+        if args.debug or args.validate:
+            mode_debug(agent)
         
-        if args.debug:
-            # Modo debug (solo validar configuración, NO ejecutar tareas)
-            logger.info("🔍 Modo DEBUG activado - Solo validación")
-            success = agent.validate()
         elif args.register:
-            # Modo registro
-            success = run_register_mode(agent)
+            mode_register(agent)
+        
         elif args.test:
-            # Modo prueba (recolectar sin enviar)
-            success = run_test_mode(agent)
+            mode_test(agent)
+        
         elif args.once:
-            # Modo ejecución única
-            success = run_once_mode(agent)
+            mode_once(agent)
+        
+        elif args.models:
+            mode_models(agent, args.location, args.department, args.assigned_to)
+        
+        elif args.export_models:
+            mode_export_models(agent, args.location, args.department, args.assigned_to, args.output)
+        
         else:
-            # Modo continuo (default)
-            success = run_continuous_mode(agent)
+            # Modo servicio continuo (default)
+            mode_service(agent)
         
-        # Salir con código apropiado
-        sys.exit(0 if success else 1)
-        
-    except FileNotFoundError as e:
-        print(f"❌ Archivo no encontrado: {e}")
-        if logger:
-            logger.error(f"Archivo no encontrado: {e}")
-        sys.exit(1)
-        
+    except KeyboardInterrupt:
+        print("\n\n⚠️  Interrupción de usuario detectada")
+        print("👋 Cerrando agente...")
+        sys.exit(0)
+    
     except Exception as e:
-        print(f"❌ Error inesperado: {e}")
-        if logger:
-            logger.error(f"Error inesperado: {e}", exc_info=True)
+        print(f"\n❌ ERROR CRÍTICO: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

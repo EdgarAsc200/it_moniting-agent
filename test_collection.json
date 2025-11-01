@@ -1,0 +1,556 @@
+{
+  "timestamp": "2025-11-01T15:56:27.973528",
+  "hostname": "192.168.1.208",
+  "os_type": "Darwin",
+  "hardware": {
+    "report_date": "2025-11-01T15:56:27.973536",
+    "hostname": "192.168.1.208",
+    "operating_system": "Darwin",
+    "os_version": "Darwin Kernel Version 25.1.0: Tue Oct 14 21:32:04 PDT 2025; root:xnu-12377.41.5~4/RELEASE_ARM64_T8132",
+    "architecture": "arm64",
+    "processor": "arm",
+    "processor_cores": 10,
+    "processor_threads": 10,
+    "processor_speed": null,
+    "total_ram_gb": 16.0,
+    "available_ram_gb": 5.43,
+    "total_disk_gb": 228.24,
+    "available_disk_gb": 34.61,
+    "system_info": {
+      "manufacturer": "Apple",
+      "model": "MacBook Air",
+      "serial_number": "HHD2V3W26T"
+    },
+    "disk_info": {
+      "partitions": [
+        {
+          "device": "/dev/disk3s1s1",
+          "mountpoint": "/",
+          "fstype": "apfs",
+          "total_gb": 228.24,
+          "used_gb": 14.38,
+          "free_gb": 34.61,
+          "percent": 29.4
+        },
+        {
+          "device": "/dev/disk3s6",
+          "mountpoint": "/System/Volumes/VM",
+          "fstype": "apfs",
+          "total_gb": 228.24,
+          "used_gb": 3.0,
+          "free_gb": 34.61,
+          "percent": 8.0
+        },
+        {
+          "device": "/dev/disk3s2",
+          "mountpoint": "/System/Volumes/Preboot",
+          "fstype": "apfs",
+          "total_gb": 228.24,
+          "used_gb": 15.12,
+          "free_gb": 34.61,
+          "percent": 30.4
+        },
+        {
+          "device": "/dev/disk3s4",
+          "mountpoint": "/System/Volumes/Update",
+          "fstype": "apfs",
+          "total_gb": 228.27,
+          "used_gb": 0.75,
+          "free_gb": 34.61,
+          "percent": 2.1
+        },
+        {
+          "device": "/dev/disk1s2",
+          "mountpoint": "/System/Volumes/xarts",
+          "fstype": "apfs",
+          "total_gb": 0.49,
+          "used_gb": 0.01,
+          "free_gb": 0.47,
+          "percent": 1.2
+        },
+        {
+          "device": "/dev/disk1s1",
+          "mountpoint": "/System/Volumes/iSCPreboot",
+          "fstype": "apfs",
+          "total_gb": 0.49,
+          "used_gb": 0.01,
+          "free_gb": 0.47,
+          "percent": 1.2
+        },
+        {
+          "device": "/dev/disk1s3",
+          "mountpoint": "/System/Volumes/Hardware",
+          "fstype": "apfs",
+          "total_gb": 0.49,
+          "used_gb": 0.0,
+          "free_gb": 0.47,
+          "percent": 0.3
+        },
+        {
+          "device": "/dev/disk3s5",
+          "mountpoint": "/System/Volumes/Data",
+          "fstype": "apfs",
+          "total_gb": 228.24,
+          "used_gb": 157.99,
+          "free_gb": 34.61,
+          "percent": 82.0
+        },
+        {
+          "device": "/Users/edgarmiranda/Downloads/Visual Studio Code.app",
+          "mountpoint": "/private/var/folders/l2/njvyxxzs1pgbbkrtg93bqljm0000gn/T/AppTranslocation/9ADFD85C-3155-478A-8837-413071F2BF2D",
+          "fstype": "nullfs",
+          "total_gb": 228.24,
+          "used_gb": 156.13,
+          "free_gb": 50.82,
+          "percent": 75.4
+        },
+        {
+          "device": "/dev/disk5s1",
+          "mountpoint": "/Library/Developer/CoreSimulator/Cryptex/Images/bundle/SimRuntimeBundle-17B9D97A-F0F1-4DBF-8B08-13C61A31778D",
+          "fstype": "apfs",
+          "total_gb": 8.5,
+          "used_gb": 8.23,
+          "free_gb": 0.24,
+          "percent": 97.1
+        },
+        {
+          "device": "/dev/disk7s1",
+          "mountpoint": "/Library/Developer/CoreSimulator/Volumes/iOS_22F77",
+          "fstype": "apfs",
+          "total_gb": 19.32,
+          "used_gb": 18.79,
+          "free_gb": 0.48,
+          "percent": 97.5
+        },
+        {
+          "device": "/dev/disk2s1",
+          "mountpoint": "/System/Volumes/Update/SFR/mnt1",
+          "fstype": "apfs",
+          "total_gb": 5.0,
+          "used_gb": 1.95,
+          "free_gb": 3.03,
+          "percent": 39.2
+        },
+        {
+          "device": "/dev/disk3s1",
+          "mountpoint": "/System/Volumes/Update/mnt1",
+          "fstype": "apfs",
+          "total_gb": 228.24,
+          "used_gb": 14.38,
+          "free_gb": 34.61,
+          "percent": 29.4
+        }
+      ]
+    }
+  },
+  "domain": {
+    "is_domain_joined": false,
+    "domain_name": null,
+    "domain_user": "edgarmiranda",
+    "workgroup": null,
+    "domain_controller": null,
+    "last_ad_sync": null,
+    "applied_group_policies": []
+  },
+  "software": {
+    "report_date": "2025-11-01T15:56:28.601149",
+    "total_software": 28,
+    "installed_software": [
+      {
+        "software_name": "AnyDesk",
+        "version": "9.1.1",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/AnyDesk.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "DisplayLink Manager",
+        "version": "1.12.2",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/DisplayLink Manager.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "DisplayLink Software Uninstaller",
+        "version": "1.8.0",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/DisplayLink Software Uninstaller.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Docker",
+        "version": "4.40.0",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Docker.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "FortiClient",
+        "version": "7.4.3.1761",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/FortiClient.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "FortiClientUninstaller",
+        "version": "Unknown",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/FortiClientUninstaller.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Google Chrome",
+        "version": "141.0.7390.123",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Google Chrome.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "iCareFone Transfer",
+        "version": "4.6.4",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/iCareFone Transfer.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "iMovie",
+        "version": "10.4.3",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/iMovie.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Karabiner-Elements",
+        "version": "15.3.0",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Karabiner-Elements.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Karabiner-EventViewer",
+        "version": "15.3.0",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Karabiner-EventViewer.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Keynote",
+        "version": "14.2",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Keynote.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Microsoft Excel",
+        "version": "16.102.2",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Microsoft Excel.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Microsoft OneNote",
+        "version": "16.102.2",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Microsoft OneNote.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Microsoft Outlook",
+        "version": "16.102.2",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Microsoft Outlook.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Microsoft PowerPoint",
+        "version": "16.102.2",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Microsoft PowerPoint.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Microsoft Teams",
+        "version": "25275.2602.4021.9366",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Microsoft Teams.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Microsoft Word",
+        "version": "16.102.2",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Microsoft Word.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Music Player",
+        "version": "Unknown",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Music Player.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Numbers",
+        "version": "14.2",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Numbers.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Pages",
+        "version": "14.2",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Pages.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Parallels Desktop",
+        "version": "26.0.1",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Parallels Desktop.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "RemotePCViewer",
+        "version": "7.7.38",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/RemotePCViewer.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Safari",
+        "version": "26.1",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Safari.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Spotify",
+        "version": "1.2.75.510",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Spotify.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Visual Studio Code 2",
+        "version": "1.105.1",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Visual Studio Code 2.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "WhatsApp",
+        "version": "25.32.11",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/WhatsApp.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Xcode",
+        "version": "16.4",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Xcode.app",
+        "size_mb": 0,
+        "source": "applications"
+      }
+    ]
+  },
+  "antivirus": {
+    "antivirus_name": "XProtect (Built-in)",
+    "antivirus_version": null,
+    "protection_status": "Active",
+    "firewall_status": "Inactive",
+    "gatekeeper_status": "Active",
+    "system_integrity_protection": "Active"
+  },
+  "office": {
+    "office_installed": true,
+    "office_version": "16.102.2",
+    "office_edition": "Microsoft 365",
+    "office_build": null,
+    "license_type": "Retail",
+    "installed_apps": [
+      "Word",
+      "Excel",
+      "PowerPoint",
+      "Outlook",
+      "OneNote"
+    ]
+  },
+  "network": {
+    "hostname": "192.168.1.208",
+    "interfaces": [
+      {
+        "name": "lo0",
+        "description": "lo0",
+        "mac_address": null,
+        "status": "Up",
+        "ipv4_address": "127.0.0.1",
+        "ipv4_subnet": null,
+        "ipv6_address": "fe80::1",
+        "type": "Unknown"
+      },
+      {
+        "name": "en0",
+        "description": "en0",
+        "mac_address": "1e:68:e1:19:5d:4c",
+        "status": "Up",
+        "ipv4_address": "192.168.1.170",
+        "ipv4_subnet": null,
+        "ipv6_address": "fe80::1c7f:97be:12ce:8e07",
+        "type": "Unknown"
+      },
+      {
+        "name": "awdl0",
+        "description": "awdl0",
+        "mac_address": "86:44:bb:44:17:5f",
+        "status": "Up",
+        "ipv4_address": null,
+        "ipv4_subnet": null,
+        "ipv6_address": "fe80::8444:bbff:fe44:175f",
+        "type": "Unknown"
+      },
+      {
+        "name": "llw0",
+        "description": "llw0",
+        "mac_address": "86:44:bb:44:17:5f",
+        "status": "Up",
+        "ipv4_address": null,
+        "ipv4_subnet": null,
+        "ipv6_address": "fe80::8444:bbff:fe44:175f",
+        "type": "Unknown"
+      },
+      {
+        "name": "utun0",
+        "description": "utun0",
+        "mac_address": null,
+        "status": "Up",
+        "ipv4_address": null,
+        "ipv4_subnet": null,
+        "ipv6_address": "fe80::4d47:9045:5ca9:8715",
+        "type": "Unknown"
+      },
+      {
+        "name": "utun1",
+        "description": "utun1",
+        "mac_address": null,
+        "status": "Up",
+        "ipv4_address": null,
+        "ipv4_subnet": null,
+        "ipv6_address": "fe80::7419:fc93:9c5e:8a9d",
+        "type": "Unknown"
+      },
+      {
+        "name": "utun2",
+        "description": "utun2",
+        "mac_address": null,
+        "status": "Up",
+        "ipv4_address": null,
+        "ipv4_subnet": null,
+        "ipv6_address": "fe80::2e7d:90c4:d446:272b",
+        "type": "Unknown"
+      },
+      {
+        "name": "utun3",
+        "description": "utun3",
+        "mac_address": null,
+        "status": "Up",
+        "ipv4_address": null,
+        "ipv4_subnet": null,
+        "ipv6_address": "fe80::ce81:b1c:bd2c:69e",
+        "type": "Unknown"
+      },
+      {
+        "name": "utun4",
+        "description": "utun4",
+        "mac_address": null,
+        "status": "Up",
+        "ipv4_address": null,
+        "ipv4_subnet": null,
+        "ipv6_address": "fe80::dc5:f19f:17bf:2d65",
+        "type": "Unknown"
+      },
+      {
+        "name": "utun5",
+        "description": "utun5",
+        "mac_address": null,
+        "status": "Up",
+        "ipv4_address": null,
+        "ipv4_subnet": null,
+        "ipv6_address": "fe80::c619:16d1:93ed:aa6d",
+        "type": "Unknown"
+      },
+      {
+        "name": "en5",
+        "description": "en5",
+        "mac_address": "0c:37:96:43:b3:b1",
+        "status": "Up",
+        "ipv4_address": "192.168.1.208",
+        "ipv4_subnet": null,
+        "ipv6_address": "fe80::4a2:674a:ab57:5f6a",
+        "type": "Unknown"
+      }
+    ],
+    "default_gateway": null,
+    "dns_servers": [
+      "192.168.1.1"
+    ],
+    "public_ip": "45.238.191.54",
+    "total_interfaces": 11
+  }
+}
