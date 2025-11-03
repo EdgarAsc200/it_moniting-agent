@@ -26,6 +26,12 @@ configparser>=5.0  # Ya incluido en Python 3.8+
  black>=22.0.0  # Code formatter
  flake8>=4.0.0  # Linter
  mypy>=0.950    # Type checker
+ psutil>=5.9.0
+ requests>=2.28.0
+ APScheduler>=3.10.0
+ PyYAML>=6.0
+ python-dateutil>=2.8.0
+ packaging>=21.0
 
 # ═══════════════════════════════════════════════════════════
 # PLATFORM-SPECIFIC DEPENDENCIES

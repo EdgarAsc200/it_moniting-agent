@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-11-02T13:40:16.638607",
-  "hostname": "192.168.1.218",
+  "timestamp": "2025-11-02T22:13:42.129412",
+  "hostname": "MacBook-Air-de-Edgar-2.local",
   "os_type": "Darwin",
   "hardware": {
-    "report_date": "2025-11-02T13:40:16.638639",
-    "hostname": "192.168.1.218",
+    "report_date": "2025-11-02T22:13:42.129419",
+    "hostname": "MacBook-Air-de-Edgar-2.local",
     "operating_system": "Darwin",
     "os_version": "Darwin Kernel Version 25.1.0: Tue Oct 14 21:32:04 PDT 2025; root:xnu-12377.41.5~4/RELEASE_ARM64_T8132",
     "architecture": "arm64",
@@ -13,9 +13,9 @@
     "processor_threads": 10,
     "processor_speed": null,
     "total_ram_gb": 16.0,
-    "available_ram_gb": 5.38,
+    "available_ram_gb": 3.66,
     "total_disk_gb": 228.24,
-    "available_disk_gb": 34.76,
+    "available_disk_gb": 39.28,
     "system_info": {
       "manufacturer": "Apple",
       "model": "MacBook Air",
@@ -29,8 +29,8 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 14.38,
-          "free_gb": 34.76,
-          "percent": 29.3
+          "free_gb": 39.28,
+          "percent": 26.8
         },
         {
           "device": "/dev/disk3s6",
@@ -38,8 +38,8 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 3.0,
-          "free_gb": 34.76,
-          "percent": 7.9
+          "free_gb": 39.28,
+          "percent": 7.1
         },
         {
           "device": "/dev/disk3s2",
@@ -47,8 +47,8 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 15.12,
-          "free_gb": 34.76,
-          "percent": 30.3
+          "free_gb": 39.28,
+          "percent": 27.8
         },
         {
           "device": "/dev/disk3s4",
@@ -56,8 +56,8 @@
           "fstype": "apfs",
           "total_gb": 228.27,
           "used_gb": 0.74,
-          "free_gb": 34.76,
-          "percent": 2.1
+          "free_gb": 39.28,
+          "percent": 1.9
         },
         {
           "device": "/dev/disk1s2",
@@ -91,9 +91,9 @@
           "mountpoint": "/System/Volumes/Data",
           "fstype": "apfs",
           "total_gb": 228.24,
-          "used_gb": 157.84,
-          "free_gb": 34.76,
-          "percent": 82.0
+          "used_gb": 153.32,
+          "free_gb": 39.28,
+          "percent": 79.6
         },
         {
           "device": "/Users/edgarmiranda/Downloads/Visual Studio Code.app",
@@ -137,8 +137,8 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 14.38,
-          "free_gb": 34.76,
-          "percent": 29.3
+          "free_gb": 39.28,
+          "percent": 26.8
         }
       ]
     }
@@ -153,7 +153,7 @@
     "applied_group_policies": []
   },
   "software": {
-    "report_date": "2025-11-02T13:40:17.145401",
+    "report_date": "2025-11-02T22:13:42.790531",
     "total_software": 28,
     "installed_software": [
       {
@@ -374,7 +374,7 @@
       },
       {
         "software_name": "WhatsApp",
-        "version": "25.32.11",
+        "version": "25.32.18",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/WhatsApp.app",
@@ -433,7 +433,7 @@
     ]
   },
   "network": {
-    "hostname": "192.168.1.218",
+    "hostname": "MacBook-Air-de-Edgar-2.local",
     "interfaces": [
       {
         "name": "lo0",
@@ -448,31 +448,31 @@
       {
         "name": "en0",
         "description": "en0",
-        "mac_address": "1e:68:e1:19:5d:4c",
+        "mac_address": "8a:d2:03:f9:65:a1",
         "status": "Up",
-        "ipv4_address": "192.168.1.170",
+        "ipv4_address": "172.20.10.2",
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::1c7f:97be:12ce:8e07",
+        "ipv6_address": "fe80::8d7:8535:3f:a097",
         "type": "Unknown"
       },
       {
         "name": "awdl0",
         "description": "awdl0",
-        "mac_address": "ba:b6:57:a3:90:ba",
+        "mac_address": "d6:07:05:39:d5:51",
         "status": "Up",
         "ipv4_address": null,
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::b8b6:57ff:fea3:90ba",
+        "ipv6_address": "fe80::d407:5ff:fe39:d551",
         "type": "Unknown"
       },
       {
         "name": "llw0",
         "description": "llw0",
-        "mac_address": "ba:b6:57:a3:90:ba",
+        "mac_address": "d6:07:05:39:d5:51",
         "status": "Up",
         "ipv4_address": null,
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::b8b6:57ff:fea3:90ba",
+        "ipv6_address": "fe80::d407:5ff:fe39:d551",
         "type": "Unknown"
       },
       {
@@ -536,21 +536,31 @@
         "type": "Unknown"
       },
       {
-        "name": "en5",
-        "description": "en5",
-        "mac_address": "0c:37:96:43:b3:b1",
+        "name": "bridge100",
+        "description": "bridge100",
+        "mac_address": "2e:ca:16:b6:ab:64",
         "status": "Up",
-        "ipv4_address": "192.168.1.218",
+        "ipv4_address": "10.211.55.2",
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::4a2:674a:ab57:5f6a",
+        "ipv6_address": "fdb2:2c26:f4e4::1",
+        "type": "Unknown"
+      },
+      {
+        "name": "bridge101",
+        "description": "bridge101",
+        "mac_address": "2e:ca:16:b6:ab:65",
+        "status": "Up",
+        "ipv4_address": "10.37.129.2",
+        "ipv4_subnet": null,
+        "ipv6_address": "fdb2:2c26:f4e4:1::1",
         "type": "Unknown"
       }
     ],
     "default_gateway": null,
     "dns_servers": [
-      "192.168.1.1"
+      "172.20.10.1"
     ],
-    "public_ip": "45.238.191.61",
-    "total_interfaces": 11
+    "public_ip": "189.201.48.29",
+    "total_interfaces": 12
   }
 }
