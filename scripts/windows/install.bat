@@ -125,6 +125,7 @@ echo [7/8] Instalando dependencias...
 echo    Esto puede tomar varios minutos...
 "%VENV_DIR%\Scripts\pip.exe" install --upgrade pip --quiet
 "%VENV_DIR%\Scripts\pip.exe" install -r requirements.txt --quiet
+"%VENV_DIR%\Scripts\pip.exe" install psutil requests APScheduler PyYAML python-dateutil packaging
 
 if %errorLevel% neq 0 (
     echo ERROR: Fallo al instalar dependencias
