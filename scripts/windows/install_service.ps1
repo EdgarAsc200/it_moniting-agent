@@ -1,8 +1,3 @@
-# Ir al directorio del proyecto
-cd C:\it_moniting-agent
-
-# Crear la versión corregida
-cat > scripts/windows/install_service.ps1 << 'EOF'
 # IT Monitoring Agent - Windows Service Installer
 # ================================================
 
@@ -198,6 +193,3 @@ try {
 
 Write-Host ""
 pause
-EOF
-
-echo "✅ Script corregido guardado"
