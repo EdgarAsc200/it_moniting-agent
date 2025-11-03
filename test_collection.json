@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-11-01T15:56:27.973528",
-  "hostname": "192.168.1.208",
+  "timestamp": "2025-11-02T13:40:16.638607",
+  "hostname": "192.168.1.218",
   "os_type": "Darwin",
   "hardware": {
-    "report_date": "2025-11-01T15:56:27.973536",
-    "hostname": "192.168.1.208",
+    "report_date": "2025-11-02T13:40:16.638639",
+    "hostname": "192.168.1.218",
     "operating_system": "Darwin",
     "os_version": "Darwin Kernel Version 25.1.0: Tue Oct 14 21:32:04 PDT 2025; root:xnu-12377.41.5~4/RELEASE_ARM64_T8132",
     "architecture": "arm64",
@@ -13,9 +13,9 @@
     "processor_threads": 10,
     "processor_speed": null,
     "total_ram_gb": 16.0,
-    "available_ram_gb": 5.43,
+    "available_ram_gb": 5.38,
     "total_disk_gb": 228.24,
-    "available_disk_gb": 34.61,
+    "available_disk_gb": 34.76,
     "system_info": {
       "manufacturer": "Apple",
       "model": "MacBook Air",
@@ -29,8 +29,8 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 14.38,
-          "free_gb": 34.61,
-          "percent": 29.4
+          "free_gb": 34.76,
+          "percent": 29.3
         },
         {
           "device": "/dev/disk3s6",
@@ -38,8 +38,8 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 3.0,
-          "free_gb": 34.61,
-          "percent": 8.0
+          "free_gb": 34.76,
+          "percent": 7.9
         },
         {
           "device": "/dev/disk3s2",
@@ -47,16 +47,16 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 15.12,
-          "free_gb": 34.61,
-          "percent": 30.4
+          "free_gb": 34.76,
+          "percent": 30.3
         },
         {
           "device": "/dev/disk3s4",
           "mountpoint": "/System/Volumes/Update",
           "fstype": "apfs",
           "total_gb": 228.27,
-          "used_gb": 0.75,
-          "free_gb": 34.61,
+          "used_gb": 0.74,
+          "free_gb": 34.76,
           "percent": 2.1
         },
         {
@@ -91,8 +91,8 @@
           "mountpoint": "/System/Volumes/Data",
           "fstype": "apfs",
           "total_gb": 228.24,
-          "used_gb": 157.99,
-          "free_gb": 34.61,
+          "used_gb": 157.84,
+          "free_gb": 34.76,
           "percent": 82.0
         },
         {
@@ -137,8 +137,8 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 14.38,
-          "free_gb": 34.61,
-          "percent": 29.4
+          "free_gb": 34.76,
+          "percent": 29.3
         }
       ]
     }
@@ -153,7 +153,7 @@
     "applied_group_policies": []
   },
   "software": {
-    "report_date": "2025-11-01T15:56:28.601149",
+    "report_date": "2025-11-02T13:40:17.145401",
     "total_software": 28,
     "installed_software": [
       {
@@ -216,24 +216,6 @@
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Google Chrome.app",
-        "size_mb": 0,
-        "source": "applications"
-      },
-      {
-        "software_name": "iCareFone Transfer",
-        "version": "4.6.4",
-        "vendor": "Unknown",
-        "install_date": "",
-        "install_location": "/Applications/iCareFone Transfer.app",
-        "size_mb": 0,
-        "source": "applications"
-      },
-      {
-        "software_name": "iMovie",
-        "version": "10.4.3",
-        "vendor": "Unknown",
-        "install_date": "",
-        "install_location": "/Applications/iMovie.app",
         "size_mb": 0,
         "source": "applications"
       },
@@ -407,6 +389,24 @@
         "install_location": "/Applications/Xcode.app",
         "size_mb": 0,
         "source": "applications"
+      },
+      {
+        "software_name": "iCareFone Transfer",
+        "version": "4.6.4",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/iCareFone Transfer.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "iMovie",
+        "version": "10.4.3",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/iMovie.app",
+        "size_mb": 0,
+        "source": "applications"
       }
     ]
   },
@@ -433,7 +433,7 @@
     ]
   },
   "network": {
-    "hostname": "192.168.1.208",
+    "hostname": "192.168.1.218",
     "interfaces": [
       {
         "name": "lo0",
@@ -458,21 +458,21 @@
       {
         "name": "awdl0",
         "description": "awdl0",
-        "mac_address": "86:44:bb:44:17:5f",
+        "mac_address": "ba:b6:57:a3:90:ba",
         "status": "Up",
         "ipv4_address": null,
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::8444:bbff:fe44:175f",
+        "ipv6_address": "fe80::b8b6:57ff:fea3:90ba",
         "type": "Unknown"
       },
       {
         "name": "llw0",
         "description": "llw0",
-        "mac_address": "86:44:bb:44:17:5f",
+        "mac_address": "ba:b6:57:a3:90:ba",
         "status": "Up",
         "ipv4_address": null,
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::8444:bbff:fe44:175f",
+        "ipv6_address": "fe80::b8b6:57ff:fea3:90ba",
         "type": "Unknown"
       },
       {
@@ -540,7 +540,7 @@
         "description": "en5",
         "mac_address": "0c:37:96:43:b3:b1",
         "status": "Up",
-        "ipv4_address": "192.168.1.208",
+        "ipv4_address": "192.168.1.218",
         "ipv4_subnet": null,
         "ipv6_address": "fe80::4a2:674a:ab57:5f6a",
         "type": "Unknown"
@@ -550,7 +550,7 @@
     "dns_servers": [
       "192.168.1.1"
     ],
-    "public_ip": "45.238.191.54",
+    "public_ip": "45.238.191.61",
     "total_interfaces": 11
   }
 }

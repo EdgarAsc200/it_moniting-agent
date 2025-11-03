@@ -1,0 +1,28 @@
+[Unit]
+Description=IT Monitoring Agent
+Documentation=https://github.com/tu-usuario/it-monitoring-agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=itmonitor
+Group=itmonitor
+WorkingDirectory=/opt/it-monitoring-agent
+Environment="PATH=/opt/it-monitoring-agent/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/opt/it-monitoring-agent/venv/bin/python /opt/it-monitoring-agent/src/main.py
+Restart=on-failure
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=it-monitoring-agent
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/it-monitoring-agent/logs /opt/it-monitoring-agent/data
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,97 @@
+# config/logging.yaml
+# Configuración avanzada de logging para IT Monitoring Agent
+
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  standard:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  
+  detailed:
+    format: '%(asctime)s - %(name)s - [%(levelname)s] - %(filename)s:%(lineno)d - %(funcName)s() - %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S.%f'
+  
+  json:
+    format: '{"timestamp": "%(asctime)s", "logger": "%(name)s", "level": "%(levelname)s", "message": "%(message)s", "module": "%(module)s", "function": "%(funcName)s"}'
+    datefmt: '%Y-%m-%dT%H:%M:%S'
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: standard
+    stream: ext://sys.stdout
+  
+  file_info:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: detailed
+    filename: logs/agent.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 5
+    encoding: utf8
+  
+  file_error:
+    class: logging.handlers.RotatingFileHandler
+    level: ERROR
+    formatter: detailed
+    filename: logs/agent_error.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 3
+    encoding: utf8
+  
+  file_debug:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: detailed
+    filename: logs/agent_debug.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 2
+    encoding: utf8
+
+loggers:
+  Agent:
+    level: INFO
+    handlers: [console, file_info, file_error]
+    propagate: false
+  
+  ITAgent.Collector:
+    level: INFO
+    handlers: [console, file_info]
+    propagate: false
+  
+  ITAgent.APIClient:
+    level: INFO
+    handlers: [console, file_info, file_error]
+    propagate: false
+  
+  ITAgent.Scheduler:
+    level: INFO
+    handlers: [console, file_info]
+    propagate: false
+  
+  ITAgent.Updater:
+    level: INFO
+    handlers: [console, file_info]
+    propagate: false
+
+root:
+  level: INFO
+  handlers: [console, file_info, file_error]
+
+# Configuración específica por entorno
+# Puedes descomentar según tu necesidad
+
+# Desarrollo
+# development:
+#   root:
+#     level: DEBUG
+#     handlers: [console, file_debug]
+
+# Producción
+# production:
+#   root:
+#     level: WARNING
+#     handlers: [file_info, file_error]

@@ -33,6 +33,8 @@ Ejemplos de uso:
   python src/main.py --once             # Ejecutar una sola vez
   python src/main.py --models           # Usar modelos validados
   python src/main.py --export-models    # Exportar inventario a JSON
+  python src/main.py --list-monitored.   # Ver software monitoreado
+  python src/main.py --check-compliance. # Verificar cumplimiento
         """
     )
     
@@ -106,7 +108,29 @@ Ejemplos de uso:
     type=str,
     default='config/agent.ini',  # ⬅️ Cambiado a agent.ini
     help='Ruta al archivo de configuración'
-)
+    )
+    # Busca la línea ~100 en main.py donde está el parser.add_argument
+# Agrega estos nuevos argumentos:
+
+    parser.add_argument(
+        '--check-compliance',
+        action='store_true',
+        help='Verificar cumplimiento de software requerido'
+    )
+
+    parser.add_argument(
+        '--list-monitored',
+        action='store_true',
+        help='Listar software configurado para monitoreo'
+    )
+
+    parser.add_argument(
+        '--monitored-config',
+        type=str,
+        default='config/monitored_software.json',
+        help='Ruta al archivo de configuración de software monitoreado'
+    )
+
     
     return parser.parse_args()
 
@@ -334,7 +358,91 @@ def mode_service(agent: Agent):
     """
     print("\n⚙️  MODO: SERVICIO CONTINUO\n")
     agent.run()
+# ═══════════════════════════════════════════════════════════
+# SOFTWARE MONITORING
+# ═══════════════════════════════════════════════════════════
 
+def check_software_compliance(config_path: str):
+    """
+    Verificar cumplimiento de software requerido
+    """
+    from utils.software_monitor import SoftwareMonitor
+    from collectors.software_collector import SoftwareCollector
+    import platform
+    
+    print("\n" + "="*60)
+    print("📋 SOFTWARE COMPLIANCE CHECK")
+    print("="*60 + "\n")
+    
+    # Inicializar monitor
+    monitor = SoftwareMonitor(config_path)
+    
+    # Recolectar software instalado
+    print("🔍 Recolectando software instalado...")
+    collector = SoftwareCollector()
+    data = collector.collect()
+    
+    installed_software = data.get('installed_software', [])
+    print(f"✓ Software detectado: {len(installed_software)} programas\n")
+    
+    # Obtener plataforma
+    os_type = platform.system()
+    
+    # Generar reporte
+    report = monitor.generate_compliance_report(installed_software, os_type)
+    print(report)
+    
+    # Verificar cumplimiento
+    compliance = monitor.check_software_compliance(installed_software, os_type)
+    
+    # Guardar reporte
+    report_file = f"software_compliance_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    with open(report_file, 'w', encoding='utf-8') as f:
+        f.write(report)
+    
+    print(f"\n💾 Reporte guardado en: {report_file}")
+    
+    return 0 if compliance['compliant'] else 1
+
+
+def list_monitored_software(config_path: str):
+    """
+    Listar todo el software configurado para monitoreo
+    """
+    from utils.software_monitor import SoftwareMonitor
+    import platform
+    
+    print("\n" + "="*60)
+    print("📋 SOFTWARE MONITOREADO")
+    print("="*60 + "\n")
+    
+    monitor = SoftwareMonitor(config_path)
+    os_type = platform.system()
+    
+    monitored = monitor.get_all_monitored_software(os_type)
+    
+    # Agrupar por categoría
+    by_category = {}
+    for sw in monitored:
+        category = sw['category']
+        if category not in by_category:
+            by_category[category] = []
+        by_category[category].append(sw)
+    
+    # Mostrar
+    for category, software_list in by_category.items():
+        print(f"\n📦 {category.upper()}")
+        print("-" * 60)
+        for sw in software_list:
+            print(f"  • {sw['name']}")
+            print(f"    Vendor: {sw['vendor']}")
+            if sw.get('min_version'):
+                print(f"    Min Version: {sw['min_version']}")
+            print(f"    Critical: {'✅ Yes' if sw.get('alert_if_missing') else '⚪ No'}")
+    
+    print(f"\n📊 Total: {len(monitored)} aplicaciones configuradas para {os_type}")
+    
+    return 0
 
 def main():
     """
@@ -375,6 +483,14 @@ def main():
         
         elif args.export_models:
             mode_export_models(agent, args.location, args.department, args.assigned_to, args.output)
+
+        # Verificar cumplimiento de software
+        elif args.check_compliance:
+            return check_software_compliance(args.monitored_config)
+
+        # Listar software monitoreado
+        elif args.list_monitored:
+            return list_monitored_software(args.monitored_config)
         
         else:
             # Modo servicio continuo (default)
@@ -394,3 +510,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
