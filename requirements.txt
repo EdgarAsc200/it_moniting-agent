@@ -13,30 +13,30 @@ packaging>=21.0
 # ═══════════════════════════════════════════════════════════
 
 # HTTP requests (si no usas urllib estándar)
-# requests>=2.28.0
+ requests>=2.28.0
 
 # Para mejor parsing de configuraciones
-# configparser>=5.0  # Ya incluido en Python 3.8+
+configparser>=5.0  # Ya incluido en Python 3.8+
 
 # Para testing
-# pytest>=7.0.0
-# pytest-cov>=3.0.0
+ pytest>=7.0.0
+ pytest-cov>=3.0.0
 
 # Para desarrollo
-# black>=22.0.0  # Code formatter
-# flake8>=4.0.0  # Linter
-# mypy>=0.950    # Type checker
+ black>=22.0.0  # Code formatter
+ flake8>=4.0.0  # Linter
+ mypy>=0.950    # Type checker
 
 # ═══════════════════════════════════════════════════════════
 # PLATFORM-SPECIFIC DEPENDENCIES
 # ═══════════════════════════════════════════════════════════
 
 # Windows-specific
-# pywin32>=300; sys_platform == 'win32'
-# wmi>=1.5.1; sys_platform == 'win32'
+ pywin32>=300; sys_platform == 'win32'
+ wmi>=1.5.1; sys_platform == 'win32'
 
 # Linux-specific
-# python-apt>=2.0.0; sys_platform == 'linux'
+ python-apt>=2.0.0; sys_platform == 'linux'
 
 # macOS-specific
-# pyobjc-framework-Cocoa>=8.0; sys_platform == 'darwin'
+ pyobjc-framework-Cocoa>=8.0; sys_platform == 'darwin'
