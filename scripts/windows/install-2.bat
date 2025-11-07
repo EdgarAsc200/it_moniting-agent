@@ -71,7 +71,7 @@ if exist get-pip.py (
 echo [8/11] Instalando dependencias...
 "%VENV_DIR%\Scripts\pip.exe" install --upgrade pip --quiet
 "%VENV_DIR%\Scripts\pip.exe" install psutil requests APScheduler pyyaml --quiet
-"%VENV_DIR%\Scripts\pip.exe" install psutil requests APScheduler PyYAML python-dateutil packaging
+"%VENV_DIR%\Scripts\pip.exe" install psutil requests APScheduler PyYAML python-dateutil packaging wmi
 
 echo [9/11] Corrigiendo encoding...
 
