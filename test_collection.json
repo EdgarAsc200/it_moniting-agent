@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-11-02T22:13:42.129412",
-  "hostname": "MacBook-Air-de-Edgar-2.local",
+  "timestamp": "2025-11-28T09:02:25.213679",
+  "hostname": "MacBook Air de Edgar",
   "os_type": "Darwin",
   "hardware": {
-    "report_date": "2025-11-02T22:13:42.129419",
+    "report_date": "2025-11-28T09:02:25.220152",
     "hostname": "MacBook-Air-de-Edgar-2.local",
     "operating_system": "Darwin",
     "os_version": "Darwin Kernel Version 25.1.0: Tue Oct 14 21:32:04 PDT 2025; root:xnu-12377.41.5~4/RELEASE_ARM64_T8132",
@@ -13,9 +13,9 @@
     "processor_threads": 10,
     "processor_speed": null,
     "total_ram_gb": 16.0,
-    "available_ram_gb": 3.66,
+    "available_ram_gb": 5.01,
     "total_disk_gb": 228.24,
-    "available_disk_gb": 39.28,
+    "available_disk_gb": 22.14,
     "system_info": {
       "manufacturer": "Apple",
       "model": "MacBook Air",
@@ -28,9 +28,9 @@
           "mountpoint": "/",
           "fstype": "apfs",
           "total_gb": 228.24,
-          "used_gb": 14.38,
-          "free_gb": 39.28,
-          "percent": 26.8
+          "used_gb": 22.7,
+          "free_gb": 22.14,
+          "percent": 50.6
         },
         {
           "device": "/dev/disk3s6",
@@ -38,26 +38,26 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 3.0,
-          "free_gb": 39.28,
-          "percent": 7.1
+          "free_gb": 22.14,
+          "percent": 11.9
         },
         {
           "device": "/dev/disk3s2",
           "mountpoint": "/System/Volumes/Preboot",
           "fstype": "apfs",
           "total_gb": 228.24,
-          "used_gb": 15.12,
-          "free_gb": 39.28,
-          "percent": 27.8
+          "used_gb": 15.1,
+          "free_gb": 22.14,
+          "percent": 40.5
         },
         {
           "device": "/dev/disk3s4",
           "mountpoint": "/System/Volumes/Update",
           "fstype": "apfs",
           "total_gb": 228.27,
-          "used_gb": 0.74,
-          "free_gb": 39.28,
-          "percent": 1.9
+          "used_gb": 0.76,
+          "free_gb": 22.14,
+          "percent": 3.3
         },
         {
           "device": "/dev/disk1s2",
@@ -91,9 +91,9 @@
           "mountpoint": "/System/Volumes/Data",
           "fstype": "apfs",
           "total_gb": 228.24,
-          "used_gb": 153.32,
-          "free_gb": 39.28,
-          "percent": 79.6
+          "used_gb": 162.08,
+          "free_gb": 22.14,
+          "percent": 88.0
         },
         {
           "device": "/Users/edgarmiranda/Downloads/Visual Studio Code.app",
@@ -132,13 +132,40 @@
           "percent": 39.2
         },
         {
+          "device": "/dev/disk9s1",
+          "mountpoint": "/Volumes/TablePlus",
+          "fstype": "apfs",
+          "total_gb": 0.52,
+          "used_gb": 0.33,
+          "free_gb": 0.19,
+          "percent": 63.4
+        },
+        {
+          "device": "/dev/disk11s1",
+          "mountpoint": "/private/var/folders/l2/njvyxxzs1pgbbkrtg93bqljm0000gn/T/ZJEopG",
+          "fstype": "apfs",
+          "total_gb": 0.52,
+          "used_gb": 0.33,
+          "free_gb": 0.19,
+          "percent": 63.4
+        },
+        {
+          "device": "/dev/disk13s1",
+          "mountpoint": "/Volumes/Brave Browser",
+          "fstype": "apfs",
+          "total_gb": 0.73,
+          "used_gb": 0.65,
+          "free_gb": 0.08,
+          "percent": 89.6
+        },
+        {
           "device": "/dev/disk3s1",
           "mountpoint": "/System/Volumes/Update/mnt1",
           "fstype": "apfs",
           "total_gb": 228.24,
-          "used_gb": 14.38,
-          "free_gb": 39.28,
-          "percent": 26.8
+          "used_gb": 22.7,
+          "free_gb": 22.14,
+          "percent": 50.6
         }
       ]
     }
@@ -153,8 +180,8 @@
     "applied_group_policies": []
   },
   "software": {
-    "report_date": "2025-11-02T22:13:42.790531",
-    "total_software": 28,
+    "report_date": "2025-11-28T09:02:25.960398",
+    "total_software": 32,
     "installed_software": [
       {
         "software_name": "AnyDesk",
@@ -162,6 +189,15 @@
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/AnyDesk.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Brave Browser",
+        "version": "142.1.84.141",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Brave Browser.app",
         "size_mb": 0,
         "source": "applications"
       },
@@ -212,7 +248,7 @@
       },
       {
         "software_name": "Google Chrome",
-        "version": "141.0.7390.123",
+        "version": "142.0.7444.176",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Google Chrome.app",
@@ -248,7 +284,7 @@
       },
       {
         "software_name": "Microsoft Excel",
-        "version": "16.102.2",
+        "version": "16.103.2",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Microsoft Excel.app",
@@ -257,7 +293,7 @@
       },
       {
         "software_name": "Microsoft OneNote",
-        "version": "16.102.2",
+        "version": "16.103.2",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Microsoft OneNote.app",
@@ -266,7 +302,7 @@
       },
       {
         "software_name": "Microsoft Outlook",
-        "version": "16.102.2",
+        "version": "16.103.2",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Microsoft Outlook.app",
@@ -275,7 +311,7 @@
       },
       {
         "software_name": "Microsoft PowerPoint",
-        "version": "16.102.2",
+        "version": "16.103.2",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Microsoft PowerPoint.app",
@@ -284,7 +320,7 @@
       },
       {
         "software_name": "Microsoft Teams",
-        "version": "25275.2602.4021.9366",
+        "version": "25306.805.4102.7211",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Microsoft Teams.app",
@@ -293,7 +329,7 @@
       },
       {
         "software_name": "Microsoft Word",
-        "version": "16.102.2",
+        "version": "16.103.2",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Microsoft Word.app",
@@ -337,6 +373,24 @@
         "source": "applications"
       },
       {
+        "software_name": "Postman Agent",
+        "version": "0.4.75",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Postman Agent.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Postman",
+        "version": "11.73.4",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Postman.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
         "software_name": "RemotePCViewer",
         "version": "7.7.38",
         "vendor": "Unknown",
@@ -364,6 +418,15 @@
         "source": "applications"
       },
       {
+        "software_name": "TablePlus",
+        "version": "6.7.4",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/TablePlus.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
         "software_name": "Visual Studio Code 2",
         "version": "1.105.1",
         "vendor": "Unknown",
@@ -374,7 +437,7 @@
       },
       {
         "software_name": "WhatsApp",
-        "version": "25.32.18",
+        "version": "25.35.17",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/WhatsApp.app",
@@ -420,7 +483,7 @@
   },
   "office": {
     "office_installed": true,
-    "office_version": "16.102.2",
+    "office_version": "16.103.2",
     "office_edition": "Microsoft 365",
     "office_build": null,
     "license_type": "Retail",
@@ -433,7 +496,7 @@
     ]
   },
   "network": {
-    "hostname": "MacBook-Air-de-Edgar-2.local",
+    "hostname": "MacBook Air de Edgar",
     "interfaces": [
       {
         "name": "lo0",
@@ -448,31 +511,31 @@
       {
         "name": "en0",
         "description": "en0",
-        "mac_address": "8a:d2:03:f9:65:a1",
+        "mac_address": "72:a0:36:dd:52:2d",
         "status": "Up",
-        "ipv4_address": "172.20.10.2",
+        "ipv4_address": "192.168.100.16",
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::8d7:8535:3f:a097",
+        "ipv6_address": "2806:2f0:5001:e765::6",
         "type": "Unknown"
       },
       {
         "name": "awdl0",
         "description": "awdl0",
-        "mac_address": "d6:07:05:39:d5:51",
+        "mac_address": "d6:94:3c:f0:e5:8e",
         "status": "Up",
         "ipv4_address": null,
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::d407:5ff:fe39:d551",
+        "ipv6_address": "fe80::d494:3cff:fef0:e58e",
         "type": "Unknown"
       },
       {
         "name": "llw0",
         "description": "llw0",
-        "mac_address": "d6:07:05:39:d5:51",
+        "mac_address": "d6:94:3c:f0:e5:8e",
         "status": "Up",
         "ipv4_address": null,
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::d407:5ff:fe39:d551",
+        "ipv6_address": "fe80::d494:3cff:fef0:e58e",
         "type": "Unknown"
       },
       {
@@ -534,33 +597,16 @@
         "ipv4_subnet": null,
         "ipv6_address": "fe80::c619:16d1:93ed:aa6d",
         "type": "Unknown"
-      },
-      {
-        "name": "bridge100",
-        "description": "bridge100",
-        "mac_address": "2e:ca:16:b6:ab:64",
-        "status": "Up",
-        "ipv4_address": "10.211.55.2",
-        "ipv4_subnet": null,
-        "ipv6_address": "fdb2:2c26:f4e4::1",
-        "type": "Unknown"
-      },
-      {
-        "name": "bridge101",
-        "description": "bridge101",
-        "mac_address": "2e:ca:16:b6:ab:65",
-        "status": "Up",
-        "ipv4_address": "10.37.129.2",
-        "ipv4_subnet": null,
-        "ipv6_address": "fdb2:2c26:f4e4:1::1",
-        "type": "Unknown"
       }
     ],
     "default_gateway": null,
     "dns_servers": [
-      "172.20.10.1"
+      "192.168.100.1"
     ],
-    "public_ip": "189.201.48.29",
-    "total_interfaces": 12
+    "ip_address": "192.168.100.16",
+    "mac_address": "72:a0:36:dd:52:2d",
+    "interface_name": "en0",
+    "public_ip": "187.188.64.172",
+    "total_interfaces": 10
   }
 }

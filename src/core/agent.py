@@ -8,6 +8,7 @@ import logging
 import platform
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List, Tuple
+import socket
 
 # Core modules
 from core.config import Config
@@ -56,7 +57,7 @@ class Agent:
         self.logger.info("=" * 60)
         
         # Información del sistema
-        self.hostname = platform.node()
+        self.hostname =socket.gethostname(),
         self.os_type = platform.system()
         
         # Intervalo de reporte (en segundos)
@@ -84,6 +85,7 @@ class Agent:
         self.asset_id = None  # ID del activo (usado en modo --register)
         
         self.logger.info("Agent inicializado correctamente")
+        self.logger.info (f"{socket.getfqdn()}, nombre del equipo")
         
         # Intentar registrar el agente si está configurado
         self._register_agent_if_needed()
@@ -115,7 +117,7 @@ class Agent:
         """Inicializa el cliente API"""
         try:
             # Verificar si usar mock o cliente real
-            use_mock = self.config.get('api', 'use_mock', fallback=True)
+            use_mock = self.config.getboolean('api', 'use_mock', fallback=False)
             
             if use_mock:
                 # Importar MockAPIClient
@@ -371,8 +373,9 @@ class Agent:
                 self.logger.error("❌ API Client no disponible")
                 return False
             
+            data = self.collect_all_data()
             # Intentar registrar
-            success, agent_id = self.api_client.register_agent()
+            success, agent_id = self.api_client.register_agent(data)
             
             if success and agent_id:
                 self.logger.info(f"✅ Agente registrado exitosamente")
@@ -399,7 +402,7 @@ class Agent:
         """Recolecta datos de todos los collectors habilitados (método público para testing)"""
         data = {
             'timestamp': datetime.now().isoformat(),
-            'hostname': self.hostname,
+            'hostname': self.collectors['network']._get_hostname(),
             'os_type': self.os_type
         }
         
@@ -640,7 +643,9 @@ class Agent:
             api_ok = self.api_client is not None
             
             # Verificar scheduler
-            scheduler_ok = self.scheduler.is_running
+            scheduler_ok = self.scheduler is not None
+
+               
             
             health_status = {
                 'collectors': collectors_ok,

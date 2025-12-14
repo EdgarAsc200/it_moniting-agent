@@ -184,7 +184,7 @@ class APIClient:
             self.logger.error(error_msg, exc_info=True)
             return False, None, error_msg
     
-    def register_agent(self) -> Tuple[bool, Optional[int]]:
+    def register_agent(self, registration_data) -> Tuple[bool, Optional[int]]:
         """
         Registra el agente en el servidor
         
@@ -193,103 +193,171 @@ class APIClient:
         """
         self.logger.info("Registrando agente en el servidor...")
         
-        # Datos de registro
-        registration_data = {
-            'name': self.config.get('agent', 'name', 'IT-Agent'),
-            'version': self.config.get('agent', 'version', '1.0.0'),
-            'os_type': self._get_os_info(),
-            'registration_date': datetime.now().isoformat()
-        }
+        import platform
         
-        # Hacer petición
+        # Obtener hostname
+        hostname = platform.node()
+        
+        # Datos de registro en formato esperado por Laravel
+        """ registration_data = {
+            'hostname': hostname,
+            'timestamp': datetime.now().isoformat(),
+            'os_type': platform.system(),
+            'hardware': {
+                'hostname': hostname,
+                'operating_system': platform.system(),
+                'os_version': platform.release(),
+                'processor': platform.processor(),
+                'processor_cores': 1,  # Valor por defecto
+                'total_ram_gb': 1,     # Valor por defecto
+                'system_info': {
+                    'manufacturer': 'Unknown',
+                    'model': 'Unknown',
+                    'serial_number': hostname  # Usar hostname como serial si no hay otro
+                }
+            },
+            'network': {
+                'ip_address': None,
+                'mac_address': None
+            }
+        } """
+        
+        # Hacer petición al nuevo endpoint
         success, response, error = self._make_request(
             'POST',
-            '/agents/register',
+            '/agents/inventory',  # ← Cambio de endpoint
             data=registration_data
         )
         
         if success and response:
-            agent_id = response.get('agent_id') or response.get('id')
+            agent_id = response.get('agent_id') or response.get('data', {}).get('asset_id')
             if agent_id:
                 self.logger.info(f"✓ Agente registrado exitosamente (ID: {agent_id})")
+                self._save_agent_id(agent_id)
                 return True, agent_id
             else:
                 self.logger.error("Respuesta del servidor no contiene agent_id")
+                self.logger.debug(f"Respuesta recibida: {response}")
                 return False, None
         else:
             self.logger.error(f"Error al registrar agente: {error}")
             return False, None
     
-    def send_inventory_data(self, inventory_data: Dict) -> bool:
+    def send_inventory_data(self, inventory_data: Dict) -> Tuple[bool, Optional[int]]:
         """
         Envía los datos de inventario al servidor
+        Si el agente no está registrado (agent_id=0), lo registra automáticamente
         
         Args:
             inventory_data: Diccionario con todos los datos recopilados
             
         Returns:
-            bool: True si el envío fue exitoso
+            tuple: (success, agent_id)
         """
         self.logger.info("Enviando datos de inventario al servidor...")
         
-        # Verificar que el agente esté registrado
-        if self.agent_id == 0:
-            self.logger.error("Agente no registrado. No se pueden enviar datos.")
-            return False
-        
-        # Agregar metadata
+        # Preparar payload
         payload = {
-            'agent_id': self.agent_id,
-            'timestamp': datetime.now().isoformat(),
-            'data': inventory_data
+            'hostname': inventory_data.get('hostname', 'Unknown'),
+            'timestamp': inventory_data.get('timestamp', datetime.now().isoformat()),
+            'os_type': inventory_data.get('os_type', 'Unknown'),
+            'hardware': inventory_data.get('hardware', {}),
+            'software': inventory_data.get('software', {}),
+            'network': inventory_data.get('network', {}),
+            'domain': inventory_data.get('domain', {}),
+            'antivirus': inventory_data.get('antivirus', {}),
+            'office': inventory_data.get('office', {}),
         }
+        
+        # Si el agente ya está registrado, incluir el ID
+        if self.agent_id != 0:
+            payload['agent_id'] = self.agent_id
+            endpoint = f'/agents/{self.agent_id}/inventory'
+        else:
+            # Primera vez, enviar sin ID (auto-registro)
+            endpoint = '/agents/inventory'
         
         # Hacer petición
         success, response, error = self._make_request(
             'POST',
-            f'/agents/{self.agent_id}/inventory',
+            endpoint,
             data=payload
         )
+
+
+        """ print(f"DEBUG - Endpoint: {endpoint}")
+        print(f"DEBUG - URL completa: {self.base_url}{endpoint}")
+        print(f"DEBUG - Token: {self.api_key[:20]}...")
+        print(f"DEBUG - Success: {success}")
+        print(f"DEBUG - Response: {response}")"""
         
-        if success:
-            self.logger.info("✓ Datos de inventario enviados exitosamente")
-            return True
+        if success and response:
+            # Extraer agent_id de la respuesta
+            agent_id = response.get('agent_id') or response.get('data', {}).get('agent_id')
+            
+            if agent_id:
+                self.logger.info(f"✓ Datos enviados exitosamente (agent_id: {agent_id})")
+                
+                # Si es la primera vez, guardar el agent_id
+                if self.agent_id == 0:
+                    self.agent_id = agent_id
+                    self._save_agent_id(agent_id)
+                    self.logger.info(f"✓ Agente registrado con ID: {agent_id}")
+                
+                return True, agent_id
+            else:
+                self.logger.warning("Respuesta exitosa pero sin agent_id")
+                return True, None
         else:
             self.logger.error(f"Error al enviar datos: {error}")
-            return False
-    
-    def send_heartbeat(self) -> bool:
+            return False, None
+
+    def _save_agent_id(self, agent_id: int):
         """
-        Envía un heartbeat al servidor para indicar que el agente está activo
+        Guarda el agent_id en la configuración para persistencia
         
-        Returns:
-            bool: True si el heartbeat fue exitoso
+        Args:
+            agent_id: ID del agente asignado por el servidor
         """
-        self.logger.debug("Enviando heartbeat...")
+        try:
+            self.config.set('agent', 'id', str(agent_id))
+            self.config.save()
+            self.logger.debug(f"Agent ID {agent_id} guardado en configuración")
+        except Exception as e:
+            self.logger.error(f"Error guardando agent_id: {e}")
         
-        if self.agent_id == 0:
-            self.logger.warning("Agente no registrado. Saltando heartbeat.")
-            return False
+        def send_heartbeat(self) -> bool:
+            """
+            Envía un heartbeat al servidor para indicar que el agente está activo
+            
+            Returns:
+                bool: True si el heartbeat fue exitoso
+            """
+            self.logger.debug("Enviando heartbeat...")
+            
+            if self.agent_id == 0:
+                self.logger.warning("Agente no registrado. Saltando heartbeat.")
+                return False
+            
+            heartbeat_data = {
+                'agent_id': self.agent_id,
+                'timestamp': datetime.now().isoformat(),
+                'status': 'active'
+            }
+            
+            success, response, error = self._make_request(
+                'POST',
+                f'/agent/{self.agent_id}/heartbeat',
+                data=heartbeat_data
+            )
+            
+            if success:
+                self.logger.debug("✓ Heartbeat enviado")
+                return True
+            else:
+                self.logger.debug(f"Error en heartbeat: {error}")
+                return False
         
-        heartbeat_data = {
-            'agent_id': self.agent_id,
-            'timestamp': datetime.now().isoformat(),
-            'status': 'active'
-        }
-        
-        success, response, error = self._make_request(
-            'POST',
-            f'/agents/{self.agent_id}/heartbeat',
-            data=heartbeat_data
-        )
-        
-        if success:
-            self.logger.debug("✓ Heartbeat enviado")
-            return True
-        else:
-            self.logger.debug(f"Error en heartbeat: {error}")
-            return False
-    
     def get_configuration(self) -> Optional[Dict]:
         """
         Obtiene la configuración del agente desde el servidor
@@ -532,4 +600,4 @@ class MockAPIClient(APIClient):
     def test_connection(self) -> bool:
         """Simula una conexión exitosa"""
         self.logger.info("[MOCK] ✓ Conexión simulada exitosa")
-        return True
+        return False

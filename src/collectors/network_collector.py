@@ -36,12 +36,15 @@ class NetworkCollector:
         self.logger.debug(f"Recopilando información de red en {self.os_type}...")
         
         data = {
-            'hostname': self._get_hostname(),
-            'interfaces': [],
-            'default_gateway': None,
-            'dns_servers': [],
-            'public_ip': None,
-            'total_interfaces': 0
+        'hostname': self._get_hostname(),
+        'interfaces': [],
+        'default_gateway': None,
+        'dns_servers': [],
+        'ip_address': None,
+        'mac_address': None,      # ← AGREGAR
+        'interface_name': None,    # ← AGREGAR
+        'public_ip': None,
+        'total_interfaces': 0
         }
         
         if self.os_type == "Windows":
@@ -55,6 +58,15 @@ class NetworkCollector:
         
         data['interfaces'] = interfaces
         data['total_interfaces'] = len(interfaces)
+
+       
+        # Obtener IP y MAC principales
+
+        primary_network = self._get_primary_network_info()
+
+        data['ip_address'] = primary_network['ip_address']
+        data['mac_address'] = primary_network['mac_address']
+        data['interface_name'] = primary_network['interface']
         
         # Obtener gateway por defecto
         data['default_gateway'] = self._get_default_gateway()
@@ -72,11 +84,61 @@ class NetworkCollector:
     
     def _get_hostname(self) -> str:
         """Obtiene el nombre del host"""
+        try: 
+            hostname = self._get_hostname_alternative()
+
+            return hostname
+            
+        except Exception as e :
+            self.logger.debug(f"Erro obteniendo hostname {e}")
+
+    def _get_hostname_alternative(self) -> str:
+        """Método alternativo para obtener hostname"""
         try:
-            return socket.gethostname()
+            if self.os_type == "Windows":
+                result = subprocess.run(
+                    ["hostname"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    return result.stdout.strip()
+            
+            elif self.os_type == "Darwin":  # macOS
+                result = subprocess.run(
+                    ["scutil", "--get", "ComputerName"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    return result.stdout.strip()
+                
+                # Fallback a hostname
+                result = subprocess.run(
+                    ["hostname", "-s"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    return result.stdout.strip()
+            
+            elif self.os_type == "Linux":
+                result = subprocess.run(
+                    ["hostname", "-s"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    return result.stdout.strip()
+        
         except Exception as e:
-            self.logger.debug(f"Error obteniendo hostname: {e}")
-            return 'Unknown'
+            self.logger.debug(f"Error en hostname alternativo: {e}")
+        
+        return socket.gethostname()
     
     def _collect_windows(self) -> List[Dict]:
         """Recopila información de red en Windows"""
@@ -493,4 +555,133 @@ class NetworkCollector:
             'public_ip': None,
             'total_interfaces': 0,
             'error': 'Collector failed'
+        }
+
+    def _get_primary_network_info(self) -> Dict:
+        """
+        Obtiene la IP y MAC address de la interfaz de red principal
+        (excluyendo loopback, VPNs, bridges, etc.)
+        
+        Returns:
+            dict: {'ip_address': str, 'mac_address': str, 'interface': str}
+        """
+        # Interfaces a ignorar (loopback, VPN, virtual)
+        ignore_patterns = [
+            r'^lo',         # loopback
+            r'^utun',       # VPN tunnels (macOS)
+            r'^tun',        # VPN tunnels (Linux/Windows)
+            r'^tap',        # VPN TAP interfaces
+            r'^awdl',       # Apple Wireless Direct Link
+            r'^llw',        # Low Latency WLAN (macOS)
+            r'^bridge',     # Bridge interfaces
+            r'^vEthernet',  # Hyper-V Virtual Ethernet (Windows)
+            r'^docker',     # Docker interfaces
+            r'^vbox',       # VirtualBox
+            r'^vmnet',      # VMware
+        ]
+        
+        try:
+            # Obtener todas las interfaces del sistema
+            interfaces = []
+            
+            if self.os_type == "Windows":
+                interfaces = self._collect_windows()
+            elif self.os_type == "Darwin":
+                interfaces = self._collect_macos()
+            elif self.os_type == "Linux":
+                interfaces = self._collect_linux()
+            
+            # Filtrar y buscar la interfaz principal
+            for interface in interfaces:
+                name = interface.get('name', '')
+                ipv4 = interface.get('ipv4_address')
+                mac = interface.get('mac_address')
+                status = interface.get('status', '').lower()
+                
+                # Saltar si no está activa
+                if status != 'up':
+                    continue
+                
+                # Saltar interfaces a ignorar
+                if any(re.match(pattern, name, re.IGNORECASE) for pattern in ignore_patterns):
+                    continue
+                
+                # Saltar loopback por IP
+                if ipv4 and ipv4.startswith('127.'):
+                    continue
+                
+                # Saltar si no tiene IP o MAC
+                if not ipv4 or not mac:
+                    continue
+                
+                # Esta es una interfaz válida
+                self.logger.debug(f"Interfaz principal detectada: {name} - IP: {ipv4}, MAC: {mac}")
+                return {
+                    'ip_address': ipv4,
+                    'mac_address': mac,
+                    'interface': name
+                }
+            
+            # Si no encontramos ninguna interfaz válida, intentar método alternativo
+            self.logger.warning("No se encontró interfaz principal por método normal, intentando método alternativo...")
+            return self._get_primary_network_fallback()
+        
+        except Exception as e:
+            self.logger.error(f"Error obteniendo red principal: {e}", exc_info=True)
+            return {
+                'ip_address': None,
+                'mac_address': None,
+                'interface': None
+            }
+
+def _get_primary_network_fallback(self) -> Dict:
+    """
+    Método alternativo para obtener IP/MAC cuando el método principal falla.
+    Usa socket para conectar a un servidor externo (sin enviar datos).
+    """
+    try:
+        # Obtener IP conectándose a un servidor DNS público
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(2)
+        s.connect(("8.8.8.8", 80))
+        ip_address = s.getsockname()[0]
+        s.close()
+        
+        # Obtener MAC address de la interfaz con esa IP
+        interfaces = []
+        if self.os_type == "Windows":
+            interfaces = self._collect_windows()
+        elif self.os_type == "Darwin":
+            interfaces = self._collect_macos()
+        elif self.os_type == "Linux":
+            interfaces = self._collect_linux()
+        
+        # Buscar la interfaz con esa IP
+        for interface in interfaces:
+            if interface.get('ipv4_address') == ip_address:
+                mac_address = interface.get('mac_address')
+                interface_name = interface.get('name')
+                
+                self.logger.debug(f"Interfaz principal (fallback): {interface_name} - IP: {ip_address}, MAC: {mac_address}")
+                
+                return {
+                    'ip_address': ip_address,
+                    'mac_address': mac_address,
+                    'interface': interface_name
+                }
+        
+        # Si no encontramos la MAC, al menos retornar la IP
+        self.logger.warning("IP encontrada pero no se pudo determinar MAC address")
+        return {
+            'ip_address': ip_address,
+            'mac_address': None,
+            'interface': 'auto-detected'
+        }
+    
+    except Exception as e:
+        self.logger.error(f"Error en método fallback: {e}")
+        return {
+            'ip_address': None,
+            'mac_address': None,
+            'interface': None
         }
