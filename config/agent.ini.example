@@ -1,75 +1,53 @@
 # IT Monitoring Agent - Archivo de Configuración
 # Copia este archivo como 'agent.ini' y ajusta los valores según tu entorno
-
 [agent]
-# ID único del agente (0 = no registrado, se asignará al registrar)
-id = 0
-
-# Nombre descriptivo del agente
-name = IT-Agent
-
-# Versión del agente
 version = 1.0.0
-
-# Intervalo de reporte en segundos (mínimo 60)
+id = 1
+name = IT-Agent
 report_interval = 300
-
-# Intervalo de reintento en caso de error (segundos)
-retry_interval = 60
-
-# Número máximo de reintentos antes de fallar
-max_retries = 3
-
+organization = Mi Empresa
 
 [api]
-# URL base de la API del servidor
-# Ejemplos:
-#   - http://localhost:8000/api
-#   - https://inventory.empresa.com/api
-base_url = http://localhost:8000/api
-url = http://localhost:8000/api
-token = your_token_here
-
-# Timeout de conexión en segundos
-timeout = 30
-
-# Verificar certificados SSL (true/false)
-verify_ssl = true
-
-# API Key para autenticación (opcional, según tu API)
-# Deja vacío si no se requiere
-api_key = 
-
-# Usar API simulada (MockAPI) para pruebas sin servidor (true/false)
-# Útil para desarrollo y testing
-use_mock = false 
-
-
-[logging]
-# Nivel de logging: DEBUG, INFO, WARNING, ERROR, CRITICAL
-level = INFO
-
-# Ruta del archivo de log (relativa o absoluta)
-file = logs/agent.log
-
-# Tamaño máximo del archivo de log en bytes (10 MB por defecto)
-max_size = 10485760
-
-# Número de archivos de respaldo a mantener
-backup_count = 5
-
-# Mostrar logs en consola (true/false)
-console = true
-
+#base_url = 
+#use_mock = false
+#api_key = ${API_TOKEN} 
+#timeout = 30
+#verify_ssl = false
 
 [collectors]
-# Habilitar/deshabilitar collectors individuales (true/false)
-hardware = true
-domain = true
-software = true
-antivirus = true
-office = true
-network = true
+#hardware = true
+#domain = true
+#software = true
+#antivirus = true
+#office = true
+#network = true
+
+[scheduler]
+#enable_log_cleanup = true
+#cleanup_logs_hour = 2
+#enable_auto_update = false
+#check_updates_hour = 3
+#enable_health_check = true
+#health_check_interval = 3600
+#enable_weekly_report = false
+
+[logging]
+#level = INFO
+#file = logs/agent.log
+#console = true
+#days_to_keep = 30
+#date_format = %%Y-%%m-%%d %%H:%%M:%%S
+
+[database]
+#enabled = false
+#type = sqlite
+#path = data/agent.db
+
+[updater]
+#auto_update = false
+#update_url = 
+#check_interval = 86400
+#keep_backups = 5
 
 
 [security]

@@ -42,7 +42,7 @@ logs/*.log
 !logs/.gitkeep
 
 # Config sensible
-
+*.ini
 .env
 *.key
 *.pem
