@@ -43,6 +43,43 @@ class HardwareCollector:
             'disk_info': self._get_disk_info()
         }
     
+    def collect(self) -> Dict:
+        """Recopila información del hardware"""
+    
+    # Obtener información del sistema (marca, modelo, serial)
+        system_info = self._get_system_info()
+    
+    # Imprimir para debugging
+        print(f"📋 Información del Sistema:")
+        print(f"   Fabricante: {system_info['manufacturer']}")
+        print(f"   Modelo: {system_info['model']}")
+        print(f"   Serie: {system_info['serial_number']}")
+        
+        hardware = {
+            'report_date': datetime.now().isoformat(),
+            'hostname': socket.gethostname(),
+            'operating_system': platform.system(),
+            'os_version': platform.version(),
+            'architecture': platform.machine(),
+            'processor': platform.processor(),
+            'processor_cores': psutil.cpu_count(logical=False),
+            'processor_threads': psutil.cpu_count(logical=True),
+            'processor_speed': self._get_cpu_speed(),
+            'total_ram_gb': round(psutil.virtual_memory().total / (1024**3), 2),
+            'available_ram_gb': round(psutil.virtual_memory().available / (1024**3), 2),
+            'total_disk_gb': round(psutil.disk_usage('/').total / (1024**3), 2),
+            'available_disk_gb': round(psutil.disk_usage('/').free / (1024**3), 2),
+            # ✅ IMPORTANTE: Incluir system_info aquí
+            'system_info': system_info,
+            'disk_info': self._get_disk_info(),
+            
+            
+            
+        }
+        
+        return hardware
+    
+
     def _get_cpu_speed(self) -> Optional[float]:
         """Obtiene la velocidad del CPU en GHz"""
         try:
