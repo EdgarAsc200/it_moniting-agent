@@ -103,6 +103,7 @@ class HardwareCollector:
             pass
         return None
     
+    
     def _get_system_info(self) -> Dict[str, str]:
         """Obtiene información del sistema"""
         info = {
@@ -128,41 +129,34 @@ class HardwareCollector:
                             info['serial_number'] = line.split(':')[1].strip()
             
             elif self.os_type == "Windows":
-                # Manufacturer
-                result = subprocess.run(
-                    ["wmic", "computersystem", "get", "manufacturer"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
-                if result.returncode == 0:
-                    lines = result.stdout.strip().split('\n')
-                    if len(lines) > 1:
-                        info['manufacturer'] = lines[1].strip()
-                
-                # Model
-                result = subprocess.run(
-                    ["wmic", "computersystem", "get", "model"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
-                if result.returncode == 0:
-                    lines = result.stdout.strip().split('\n')
-                    if len(lines) > 1:
-                        info['model'] = lines[1].strip()
-                
-                # Serial
-                result = subprocess.run(
-                    ["wmic", "bios", "get", "serialnumber"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
-                if result.returncode == 0:
-                    lines = result.stdout.strip().split('\n')
-                    if len(lines) > 1:
-                        info['serial_number'] = lines[1].strip()
+                # MÉTODO PRINCIPAL: Librería WMI (más confiable)
+                try:
+                    import wmi
+                    c = wmi.WMI()
+                    
+                    # Obtener fabricante y modelo
+                    for system in c.Win32_ComputerSystem():
+                        info['manufacturer'] = system.Manufacturer
+                        info['model'] = system.Model
+                    
+                    # Obtener número de serie
+                    for bios in c.Win32_BIOS():
+                        info['serial_number'] = bios.SerialNumber
+                    
+                    print(f"✅ Información del sistema obtenida (WMI):")
+                    print(f"   Fabricante: {info['manufacturer']}")
+                    print(f"   Modelo: {info['model']}")
+                    print(f"   Serie: {info['serial_number']}")
+                    
+                except ImportError:
+                    print("⚠️  Librería WMI no instalada. Instalar con: pip install wmi")
+                    # Fallback a PowerShell
+                    info = self._get_system_info_powershell()
+                    
+                except Exception as e:
+                    print(f"⚠️  Error con WMI: {e}")
+                    # Fallback a PowerShell
+                    info = self._get_system_info_powershell()
             
             elif self.os_type == "Linux":
                 try:
@@ -184,7 +178,63 @@ class HardwareCollector:
                     pass
         
         except Exception as e:
-            pass
+            print(f"❌ Error obteniendo información del sistema: {e}")
+        
+        return info
+
+    def _get_system_info_powershell(self) -> Dict[str, str]:
+        """Método de respaldo usando PowerShell"""
+        info = {
+            'manufacturer': 'Unknown',
+            'model': 'Unknown',
+            'serial_number': None
+        }
+        
+        try:
+            print("🔄 Usando PowerShell como método alternativo...")
+            
+            # Comando PowerShell para obtener toda la información
+            ps_command = """
+            $system = Get-CimInstance -ClassName Win32_ComputerSystem
+            $bios = Get-CimInstance -ClassName Win32_BIOS
+            Write-Output "Manufacturer=$($system.Manufacturer)"
+            Write-Output "Model=$($system.Model)"
+            Write-Output "SerialNumber=$($bios.SerialNumber)"
+            """
+            
+            result = subprocess.run(
+                ["powershell", "-Command", ps_command],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+            )
+            
+            if result.returncode == 0:
+                for line in result.stdout.split('\n'):
+                    line = line.strip()
+                    if 'Manufacturer=' in line:
+                        manufacturer = line.split('=', 1)[1].strip()
+                        if manufacturer:
+                            info['manufacturer'] = manufacturer
+                    elif 'Model=' in line:
+                        model = line.split('=', 1)[1].strip()
+                        if model:
+                            info['model'] = model
+                    elif 'SerialNumber=' in line:
+                        serial = line.split('=', 1)[1].strip()
+                        if serial:
+                            info['serial_number'] = serial
+                
+                print(f"✅ Información del sistema obtenida (PowerShell):")
+                print(f"   Fabricante: {info['manufacturer']}")
+                print(f"   Modelo: {info['model']}")
+                print(f"   Serie: {info['serial_number']}")
+            else:
+                print(f"❌ Error ejecutando PowerShell: {result.stderr}")
+                
+        except Exception as e:
+            print(f"❌ Error con PowerShell: {e}")
         
         return info
     
