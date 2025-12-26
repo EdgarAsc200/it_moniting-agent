@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-12-16T01:17:09.730346",
+  "timestamp": "2025-12-25T23:59:06.858853",
   "hostname": "MacBook Air de Edgar",
   "os_type": "Darwin",
   "hardware": {
-    "report_date": "2025-12-16T01:17:09.847477",
+    "report_date": "2025-12-25T23:59:06.966604",
     "hostname": "Mac Air de Edgar.local",
     "operating_system": "Darwin",
     "os_version": "Darwin Kernel Version 25.1.0: Tue Oct 14 21:32:04 PDT 2025; root:xnu-12377.41.5~4/RELEASE_ARM64_T8132",
@@ -13,9 +13,9 @@
     "processor_threads": 10,
     "processor_speed": null,
     "total_ram_gb": 16.0,
-    "available_ram_gb": 5.72,
+    "available_ram_gb": 5.76,
     "total_disk_gb": 228.24,
-    "available_disk_gb": 48.19,
+    "available_disk_gb": 23.94,
     "system_info": {
       "manufacturer": "Apple",
       "model": "MacBook Air",
@@ -28,9 +28,9 @@
           "mountpoint": "/",
           "fstype": "apfs",
           "total_gb": 228.24,
-          "used_gb": 11.33,
-          "free_gb": 48.19,
-          "percent": 19.0
+          "used_gb": 22.72,
+          "free_gb": 23.94,
+          "percent": 48.7
         },
         {
           "device": "/dev/disk3s6",
@@ -38,26 +38,26 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 2.0,
-          "free_gb": 48.19,
-          "percent": 4.0
+          "free_gb": 23.94,
+          "percent": 7.7
         },
         {
           "device": "/dev/disk3s2",
           "mountpoint": "/System/Volumes/Preboot",
           "fstype": "apfs",
           "total_gb": 228.24,
-          "used_gb": 8.83,
-          "free_gb": 48.19,
-          "percent": 15.5
+          "used_gb": 15.2,
+          "free_gb": 23.94,
+          "percent": 38.8
         },
         {
           "device": "/dev/disk3s4",
           "mountpoint": "/System/Volumes/Update",
           "fstype": "apfs",
           "total_gb": 228.27,
-          "used_gb": 0.02,
-          "free_gb": 48.19,
-          "percent": 0.0
+          "used_gb": 0.77,
+          "free_gb": 23.94,
+          "percent": 3.1
         },
         {
           "device": "/dev/disk1s2",
@@ -91,9 +91,9 @@
           "mountpoint": "/System/Volumes/Data",
           "fstype": "apfs",
           "total_gb": 228.24,
-          "used_gb": 155.46,
-          "free_gb": 48.19,
-          "percent": 76.3
+          "used_gb": 161.15,
+          "free_gb": 23.94,
+          "percent": 87.1
         },
         {
           "device": "/dev/disk2s1",
@@ -103,6 +103,15 @@
           "used_gb": 1.95,
           "free_gb": 3.03,
           "percent": 39.2
+        },
+        {
+          "device": "/dev/disk3s1",
+          "mountpoint": "/System/Volumes/Update/mnt1",
+          "fstype": "apfs",
+          "total_gb": 228.24,
+          "used_gb": 22.72,
+          "free_gb": 23.94,
+          "percent": 48.7
         }
       ]
     }
@@ -117,8 +126,8 @@
     "applied_group_policies": []
   },
   "software": {
-    "report_date": "2025-12-16T01:17:10.324471",
-    "total_software": 32,
+    "report_date": "2025-12-25T23:59:07.512461",
+    "total_software": 33,
     "installed_software": [
       {
         "software_name": "AnyDesk",
@@ -185,7 +194,7 @@
       },
       {
         "software_name": "Google Chrome",
-        "version": "143.0.7499.110",
+        "version": "143.0.7499.170",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Google Chrome.app",
@@ -221,7 +230,7 @@
       },
       {
         "software_name": "Microsoft Excel",
-        "version": "16.103.4",
+        "version": "16.104",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Microsoft Excel.app",
@@ -230,7 +239,7 @@
       },
       {
         "software_name": "Microsoft OneNote",
-        "version": "16.103.4",
+        "version": "16.104",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Microsoft OneNote.app",
@@ -239,7 +248,7 @@
       },
       {
         "software_name": "Microsoft Outlook",
-        "version": "16.103.4",
+        "version": "16.104",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Microsoft Outlook.app",
@@ -248,7 +257,7 @@
       },
       {
         "software_name": "Microsoft PowerPoint",
-        "version": "16.103.4",
+        "version": "16.104",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Microsoft PowerPoint.app",
@@ -266,7 +275,7 @@
       },
       {
         "software_name": "Microsoft Word",
-        "version": "16.103.4",
+        "version": "16.104",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Microsoft Word.app",
@@ -311,7 +320,7 @@
       },
       {
         "software_name": "Postman Agent",
-        "version": "0.4.75",
+        "version": "0.4.78",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Postman Agent.app",
@@ -320,7 +329,7 @@
       },
       {
         "software_name": "Postman",
-        "version": "11.75.6",
+        "version": "11.77.2",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Postman.app",
@@ -365,7 +374,7 @@
       },
       {
         "software_name": "Visual Studio Code 2",
-        "version": "1.106.3",
+        "version": "1.107.1",
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/Visual Studio Code 2.app",
@@ -378,6 +387,15 @@
         "vendor": "Unknown",
         "install_date": "",
         "install_location": "/Applications/WhatsApp.app",
+        "size_mb": 0,
+        "source": "applications"
+      },
+      {
+        "software_name": "Windows App",
+        "version": "11.3.0",
+        "vendor": "Unknown",
+        "install_date": "",
+        "install_location": "/Applications/Windows App.app",
         "size_mb": 0,
         "source": "applications"
       },
@@ -411,16 +429,24 @@
     ]
   },
   "antivirus": {
-    "antivirus_name": "XProtect (Built-in)",
+    "antivirus_name": "ESET Cyber Security",
     "antivirus_version": null,
-    "protection_status": "Active",
-    "firewall_status": "Inactive",
-    "gatekeeper_status": "Active",
-    "system_integrity_protection": "Active"
+    "protection_status": "active",
+    "last_update": null,
+    "last_scan": null,
+    "firewall_status": "active",
+    "real_time_protection": true,
+    "definitions_up_to_date": false,
+    "engine_version": null,
+    "third_party_antivirus": [
+      "ESET Cyber Security"
+    ],
+    "detection_method": "Process and Application scanning",
+    "os_type": "Darwin"
   },
   "office": {
     "office_installed": true,
-    "office_version": "16.103.4",
+    "office_version": "16.104",
     "office_edition": "Microsoft 365",
     "office_build": null,
     "license_type": "Retail",
@@ -470,7 +496,7 @@
         "description": "en0",
         "mac_address": "1e:68:e1:19:5d:4c",
         "status": "Up",
-        "ipv4_address": "192.168.1.124",
+        "ipv4_address": "192.168.1.129",
         "ipv4_subnet": null,
         "ipv6_address": "fe80::1cd9:497f:fb1:75f6",
         "type": "Unknown"
@@ -478,21 +504,21 @@
       {
         "name": "awdl0",
         "description": "awdl0",
-        "mac_address": "da:77:4c:4d:28:22",
+        "mac_address": "e2:ec:ff:8c:dc:af",
         "status": "Up",
         "ipv4_address": null,
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::d877:4cff:fe4d:2822",
+        "ipv6_address": "fe80::e0ec:ffff:fe8c:dcaf",
         "type": "Unknown"
       },
       {
         "name": "llw0",
         "description": "llw0",
-        "mac_address": "da:77:4c:4d:28:22",
+        "mac_address": "e2:ec:ff:8c:dc:af",
         "status": "Up",
         "ipv4_address": null,
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::d877:4cff:fe4d:2822",
+        "ipv6_address": "fe80::e0ec:ffff:fe8c:dcaf",
         "type": "Unknown"
       },
       {
@@ -536,6 +562,16 @@
         "type": "Unknown"
       },
       {
+        "name": "en5",
+        "description": "en5",
+        "mac_address": "0c:37:96:43:b3:b1",
+        "status": "Up",
+        "ipv4_address": "192.168.1.183",
+        "ipv4_subnet": null,
+        "ipv6_address": "fe80::875:6f61:eb05:ac53",
+        "type": "Unknown"
+      },
+      {
         "name": "bridge100",
         "description": "bridge100",
         "mac_address": "2e:ca:16:b6:ab:64",
@@ -554,26 +590,16 @@
         "ipv4_subnet": null,
         "ipv6_address": "fdb2:2c26:f4e4:1::1",
         "type": "Unknown"
-      },
-      {
-        "name": "en5",
-        "description": "en5",
-        "mac_address": "0c:37:96:43:b3:b1",
-        "status": "Up",
-        "ipv4_address": "192.168.1.118",
-        "ipv4_subnet": null,
-        "ipv6_address": "fe80::875:6f61:eb05:ac53",
-        "type": "Unknown"
       }
     ],
     "default_gateway": null,
     "dns_servers": [
       "192.168.1.1"
     ],
-    "ip_address": "192.168.1.124",
+    "ip_address": "192.168.1.129",
     "mac_address": "1e:68:e1:19:5d:4c",
     "interface_name": "en0",
-    "public_ip": "45.238.191.54",
+    "public_ip": "45.238.191.58",
     "total_interfaces": 13
   }
 }
