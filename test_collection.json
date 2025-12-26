@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-12-25T23:59:06.858853",
+  "timestamp": "2025-12-26T16:29:53.315480",
   "hostname": "MacBook Air de Edgar",
   "os_type": "Darwin",
   "hardware": {
-    "report_date": "2025-12-25T23:59:06.966604",
+    "report_date": "2025-12-26T16:29:53.457258",
     "hostname": "Mac Air de Edgar.local",
     "operating_system": "Darwin",
     "os_version": "Darwin Kernel Version 25.1.0: Tue Oct 14 21:32:04 PDT 2025; root:xnu-12377.41.5~4/RELEASE_ARM64_T8132",
@@ -13,9 +13,9 @@
     "processor_threads": 10,
     "processor_speed": null,
     "total_ram_gb": 16.0,
-    "available_ram_gb": 5.76,
+    "available_ram_gb": 5.07,
     "total_disk_gb": 228.24,
-    "available_disk_gb": 23.94,
+    "available_disk_gb": 23.97,
     "system_info": {
       "manufacturer": "Apple",
       "model": "MacBook Air",
@@ -29,7 +29,7 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 22.72,
-          "free_gb": 23.94,
+          "free_gb": 23.97,
           "percent": 48.7
         },
         {
@@ -38,7 +38,7 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 2.0,
-          "free_gb": 23.94,
+          "free_gb": 23.97,
           "percent": 7.7
         },
         {
@@ -47,7 +47,7 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 15.2,
-          "free_gb": 23.94,
+          "free_gb": 23.97,
           "percent": 38.8
         },
         {
@@ -56,7 +56,7 @@
           "fstype": "apfs",
           "total_gb": 228.27,
           "used_gb": 0.77,
-          "free_gb": 23.94,
+          "free_gb": 23.97,
           "percent": 3.1
         },
         {
@@ -91,9 +91,9 @@
           "mountpoint": "/System/Volumes/Data",
           "fstype": "apfs",
           "total_gb": 228.24,
-          "used_gb": 161.15,
-          "free_gb": 23.94,
-          "percent": 87.1
+          "used_gb": 161.12,
+          "free_gb": 23.97,
+          "percent": 87.0
         },
         {
           "device": "/dev/disk2s1",
@@ -110,7 +110,7 @@
           "fstype": "apfs",
           "total_gb": 228.24,
           "used_gb": 22.72,
-          "free_gb": 23.94,
+          "free_gb": 23.97,
           "percent": 48.7
         }
       ]
@@ -126,7 +126,7 @@
     "applied_group_policies": []
   },
   "software": {
-    "report_date": "2025-12-25T23:59:07.512461",
+    "report_date": "2025-12-26T16:29:54.092418",
     "total_software": 33,
     "installed_software": [
       {
@@ -429,18 +429,16 @@
     ]
   },
   "antivirus": {
-    "antivirus_name": "ESET Cyber Security",
+    "antivirus_name": "None detected",
     "antivirus_version": null,
-    "protection_status": "active",
+    "protection_status": "none",
     "last_update": null,
     "last_scan": null,
     "firewall_status": "active",
-    "real_time_protection": true,
+    "real_time_protection": false,
     "definitions_up_to_date": false,
     "engine_version": null,
-    "third_party_antivirus": [
-      "ESET Cyber Security"
-    ],
+    "third_party_antivirus": [],
     "detection_method": "Process and Application scanning",
     "os_type": "Darwin"
   },
@@ -504,21 +502,21 @@
       {
         "name": "awdl0",
         "description": "awdl0",
-        "mac_address": "e2:ec:ff:8c:dc:af",
+        "mac_address": "5a:99:02:80:65:2d",
         "status": "Up",
         "ipv4_address": null,
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::e0ec:ffff:fe8c:dcaf",
+        "ipv6_address": "fe80::5899:2ff:fe80:652d",
         "type": "Unknown"
       },
       {
         "name": "llw0",
         "description": "llw0",
-        "mac_address": "e2:ec:ff:8c:dc:af",
+        "mac_address": "5a:99:02:80:65:2d",
         "status": "Up",
         "ipv4_address": null,
         "ipv4_subnet": null,
-        "ipv6_address": "fe80::e0ec:ffff:fe8c:dcaf",
+        "ipv6_address": "fe80::5899:2ff:fe80:652d",
         "type": "Unknown"
       },
       {
@@ -599,7 +597,7 @@
     "ip_address": "192.168.1.129",
     "mac_address": "1e:68:e1:19:5d:4c",
     "interface_name": "en0",
-    "public_ip": "45.238.191.58",
+    "public_ip": "45.238.191.54",
     "total_interfaces": 13
   }
 }
