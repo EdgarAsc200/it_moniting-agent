@@ -3,7 +3,7 @@ IT Monitoring Agent - Utilities Module
 Funciones de utilidad compartidas en todo el proyecto
 """
 
-from .system_info import (
+from utils.system_info import (
     get_os_info,
     get_hostname,
     get_platform_info,
@@ -12,7 +12,7 @@ from .system_info import (
     get_uptime
 )
 
-from .validators import (
+from utils.validators import (
     validate_ip,
     validate_email,
     validate_version,
@@ -21,7 +21,7 @@ from .validators import (
     is_valid_mac_address
 )
 
-from .formatters import (
+from utils.formatters import (
     format_bytes,
     format_timestamp,
     format_duration,
@@ -30,7 +30,7 @@ from .formatters import (
     sanitize_filename
 )
 
-from .file_utils import (
+from utils.file_utils import (
     ensure_directory,
     safe_read_file,
     safe_write_file,
@@ -39,7 +39,7 @@ from .file_utils import (
     get_file_hash
 )
 
-from .network_utils import (
+from utils.network_utils import (
     is_port_open,
     ping_host,
     get_local_ip,
