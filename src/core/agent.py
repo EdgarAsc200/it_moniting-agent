@@ -374,6 +374,7 @@ class Agent:
                 return False
             
             data = self.collect_all_data()
+
             # Intentar registrar
             success, agent_id = self.api_client.register_agent(data)
             

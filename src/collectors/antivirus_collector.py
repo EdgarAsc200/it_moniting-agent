@@ -26,16 +26,27 @@ class AntivirusCollector:
         """
         Método de interfaz unificada para compatibilidad con otros collectors
         Llama internamente a collect_antivirus_info()
-        
-        Returns:
-            dict: Información del antivirus detectado
         """
+        
         try:
-            return self.collect_antivirus_info()
+            result = self.collect_antivirus_info()
+            return result
         except Exception as e:
             print(f"❌ Error en collect(): {e}")
+            import traceback
+            traceback.print_exc()
+            
             return {
                 'antivirus_name': 'Error',
+                'antivirus_version': None,
+                'protection_status': 'unknown',
+                'last_update': None,
+                'last_scan': None,
+                'firewall_status': 'unknown',
+                'real_time_protection': False,
+                'definitions_up_to_date': False,
+                'engine_version': None,
+                'third_party_antivirus': [],
                 'error': str(e),
                 'os_type': self.os_type
             }
@@ -589,6 +600,7 @@ class AntivirusCollector:
         
         antivirus_info['detection_method'] = 'Process and Application scanning'
         
+        # ← AQUÍ SE INICIALIZA LA LISTA
         detected = []
         
         # ═══════════════════════════════════════════════════════════
@@ -613,8 +625,7 @@ class AntivirusCollector:
         }
         
         app_paths = ['/Applications', os.path.expanduser('~/Applications')]
-        
-        print("\n🔍 Verificando aplicaciones instaladas...")
+    
         
         for app_path in app_paths:
             if os.path.exists(app_path):
@@ -673,14 +684,65 @@ class AntivirusCollector:
                 print(f"⚠️  Error verificando procesos: {e}")
         
         # ═══════════════════════════════════════════════════════════
-        # XPROTECT (NATIVO DE macOS)
+        # XPROTECT (NATIVO DE macOS) - MEJORADO
         # ═══════════════════════════════════════════════════════════
         
-        xprotect_path = '/System/Library/CoreServices/XProtect.bundle'
-        xprotect_detected = False
         
-        if os.path.exists(xprotect_path):
-            xprotect_detected = True
+        
+        xprotect_detected = False
+        xprotect_path = None
+        
+        # Posibles ubicaciones de XProtect según versión de macOS
+        xprotect_locations = [
+            '/System/Library/CoreServices/XProtect.bundle',
+            '/Library/Apple/System/Library/CoreServices/XProtect.bundle',
+            '/System/Library/CoreServices/XProtect.app',
+        ]
+        
+        for location in xprotect_locations:
+            if os.path.exists(location):
+                xprotect_detected = True
+                xprotect_path = location
+                break
+        
+        # Si no encontramos XProtect por path, verificar si existe el proceso
+        if not xprotect_detected:
+            try:
+                # XProtect siempre está integrado en macOS, verificar con system_profiler
+                result = subprocess.run(
+                    ['system_profiler', 'SPSoftwareDataType'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                
+                if 'System Integrity Protection' in result.stdout or 'macOS' in result.stdout:
+                    # Si el sistema responde, XProtect está presente (está integrado en macOS 10.6+)
+                    xprotect_detected = True
+                    xprotect_path = '/System/Library/CoreServices/XProtect.bundle'  # Path por defecto
+                    
+            except:
+                pass
+        
+        # XProtect está presente en todas las versiones modernas de macOS
+        # Si llegamos aquí y no lo detectamos, asumimos que existe de todas formas
+        if not xprotect_detected:
+            # En macOS 10.6 y superior, XProtect está siempre presente
+            import platform as plat
+            macos_version = plat.mac_ver()[0]
+            
+            try:
+                major_version = int(macos_version.split('.')[0]) if macos_version else 0
+                
+                # macOS 10.6+ (Snow Leopard) tiene XProtect
+                if major_version >= 10 or macos_version.startswith('11') or macos_version.startswith('12') or macos_version.startswith('13') or macos_version.startswith('14') or macos_version.startswith('15'):
+                    xprotect_detected = True
+                    xprotect_path = '/System/Library/CoreServices/XProtect.bundle'
+                    print(f"   ✅ XProtect asumido (macOS {macos_version} incluye XProtect por defecto)")
+            except:
+                pass
+        
+        if xprotect_detected:
             detected.append({
                 'name': 'XProtect',
                 'vendor': 'Apple',
@@ -688,7 +750,8 @@ class AntivirusCollector:
                 'app_path': xprotect_path,
                 'is_builtin': True
             })
-            print(f"\n✅ XProtect (nativo de macOS) detectado")
+        else:
+            print(f"   ⚠️  XProtect no detectado (inusual en macOS moderno)")
         
         # ═══════════════════════════════════════════════════════════
         # RESUMEN DE DETECCIÓN
@@ -764,18 +827,23 @@ class AntivirusCollector:
             antivirus_info['real_time_protection'] = True
             antivirus_info['third_party_antivirus'] = []
             
-            print(f"✅ Usando XProtect (no hay antivirus de terceros instalados)")
+            
             
             # Obtener información de XProtect
             xprotect_info = self._get_xprotect_info()
             if xprotect_info:
                 antivirus_info['last_update'] = xprotect_info.get('last_update')
+                if xprotect_info.get('definitions_up_to_date') is not None:
+                    antivirus_info['definitions_up_to_date'] = xprotect_info['definitions_up_to_date'] 
         
         else:
-            antivirus_info['antivirus_name'] = 'None detected'
-            antivirus_info['protection_status'] = 'none'
+            # No se detectó nada (muy raro en macOS)
+            antivirus_info['antivirus_name'] = 'XProtect (default)'
+            antivirus_info['protection_status'] = 'active'
+            antivirus_info['real_time_protection'] = True
             antivirus_info['third_party_antivirus'] = []
-            print(f"⚠️  No se detectaron productos antivirus instalados")
+            
+            print(f"⚠️  No se detectaron antivirus, usando XProtect por defecto (presente en macOS)")
         
         # ═══════════════════════════════════════════════════════════
         # FIREWALL DE macOS
@@ -796,31 +864,66 @@ class AntivirusCollector:
         return antivirus_info
     
     def _get_xprotect_info(self) -> Optional[Dict]:
-        """
-        Obtiene información de XProtect de macOS
-        
-        Returns:
-            dict: Información de XProtect o None si falla
-        """
+        """Obtiene información de XProtect de macOS"""
         try:
-            xprotect_plist = '/System/Library/CoreServices/XProtect.bundle/Contents/Resources/XProtect.meta.plist'
+            scan_info = {}
             
-            if not os.path.exists(xprotect_plist):
-                return None
+           
             
-            # Obtener fecha de modificación del archivo
-            import datetime
-            mod_time = os.path.getmtime(xprotect_plist)
-            last_update = datetime.datetime.fromtimestamp(mod_time).isoformat()
+            # Posibles ubicaciones del archivo de configuración de XProtect
+            xprotect_files = [
+                '/System/Library/CoreServices/XProtect.bundle/Contents/Resources/XProtect.meta.plist',
+                '/System/Library/CoreServices/XProtect.bundle/Contents/Resources/XProtect.plist',
+                '/Library/Apple/System/Library/CoreServices/XProtect.bundle/Contents/Resources/XProtect.meta.plist',
+                '/System/Library/CoreServices/XProtect.app/Contents/Resources/XProtect.plist',
+            ]
             
-            print(f"   Última actualización de XProtect: {last_update}")
+            for plist_path in xprotect_files:
+                if os.path.exists(plist_path):
+                    try:
+                        # Obtener fecha de modificación del archivo
+                        mod_time = os.path.getmtime(plist_path)
+                        last_update = datetime.fromtimestamp(mod_time).isoformat()
+                        
+                        scan_info['last_update'] = last_update
+                        
+                        # Calcular si está actualizado (menos de 30 días para XProtect)
+                        days_old = (datetime.now() - datetime.fromtimestamp(mod_time)).days
+                        scan_info['definitions_up_to_date'] = days_old < 30
+                        
+                        
+                        return scan_info
+                    except Exception as e:
+                        print(f"   ⚠️  Error leyendo {plist_path}: {e}")
             
-            return {
-                'last_update': last_update
-            }
+            # Si no encontramos archivos, intentar con softwareupdate
+            try:
+                print("   🔍 Intentando obtener info con softwareupdate...")
+                result = subprocess.run(
+                    ['softwareupdate', '--history'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                
+                # Buscar actualizaciones de XProtect en el historial
+                for line in result.stdout.split('\n'):
+                    if 'XProtect' in line or 'Security Update' in line:
+                        print(f"   📄 {line}")
+                        # Intentar extraer fecha
+                        # El formato varía, pero típicamente tiene fechas
+            except Exception as e:
+                print(f"   ⚠️  Error con softwareupdate: {e}")
+            
+            if not scan_info:
+                # Como último recurso, usar una fecha genérica reciente
+                print("   ℹ️  No se pudo determinar última actualización exacta")
+                print("   ℹ️  XProtect se actualiza automáticamente con macOS")
+            
+            return scan_info if scan_info else None
         
         except Exception as e:
-            print(f"   ⚠️  Error obteniendo info de XProtect: {e}")
+            print(f"   ❌ Error obteniendo info de XProtect: {e}")
             return None
     def _get_malwarebytes_macos_info(self) -> Optional[Dict]:
         """Obtiene información de Malwarebytes en macOS"""
